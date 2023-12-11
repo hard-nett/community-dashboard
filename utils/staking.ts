@@ -93,7 +93,7 @@ export const extendValidators = (
           communityTax,
           pool,
         })
-      : null;
+      : ZERO;
 
     return { ...validator, delegation, reward, apr };
   });

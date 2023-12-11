@@ -1,6 +1,5 @@
 import {
   Stat,
-  StatLabel,
   StatNumber,
   StatGroup,
   Button,
@@ -18,6 +17,7 @@ import { type ParsedRewards as Rewards } from '@/utils/staking';
 import { getCoin } from '@/config';
 import { useTx } from '@/hooks/useTx';
 import { isGreaterThanZero, sum } from '@/components/utils';
+import { Badge } from '@/components/ui/badge';
 
 const { withdrawDelegatorReward } =
   cosmos.distribution.v1beta1.MessageComposer.fromPartial;
@@ -74,13 +74,11 @@ const Overview = ({
   return (
     <StatGroup>
       <Stat py={2} minWidth="200px">
-        <StatLabel
-          color={useColorModeValue('blackAlpha.600', 'whiteAlpha.600')}
-          fontWeight="semibold"
-          fontSize="md"
+        <Badge
+          // color={useColorModeValue('blackAlpha.600', 'whiteAlpha.600')}
         >
           Total {coin.symbol} Amount
-        </StatLabel>
+        </Badge>
         <StatNumber>
           {totalAmount}&nbsp;
           <Token token={coin.symbol} />
@@ -88,26 +86,22 @@ const Overview = ({
       </Stat>
 
       <Stat py={2} minWidth="200px">
-        <StatLabel
-          color={useColorModeValue('blackAlpha.600', 'whiteAlpha.600')}
-          fontWeight="semibold"
-          fontSize="md"
+        <Badge
+          // color={useColorModeValue('blackAlpha.600', 'whiteAlpha.600')}
         >
           Available Balance
-        </StatLabel>
+        </Badge>
         <StatNumber>
           {balance} <Token token={coin.symbol} />
         </StatNumber>
       </Stat>
 
       <Stat py={2} minWidth="200px">
-        <StatLabel
-          color={useColorModeValue('blackAlpha.600', 'whiteAlpha.600')}
-          fontWeight="semibold"
-          fontSize="md"
+        <Badge
+          // color={useColorModeValue('blackAlpha.600', 'whiteAlpha.600')}
         >
           Staked Amount
-        </StatLabel>
+        </Badge>
         <StatNumber>
           {staked}&nbsp;
           <Token token={coin.symbol} />
@@ -122,17 +116,15 @@ const Overview = ({
         borderRadius={10}
         minWidth="200px"
       >
-        <StatLabel
-          color={useColorModeValue('blackAlpha.600', 'whiteAlpha.600')}
-          fontWeight="semibold"
-          fontSize="md"
+        <Badge
+          // color={useColorModeValue('blackAlpha.600', 'whiteAlpha.600')}
         >
           Claimable Rewards
-        </StatLabel>
+        </Badge>
         <StatNumber>
           {rewards.total}&nbsp;
           <Token
-            color={useColorModeValue('blackAlpha.600', 'whiteAlpha.600')}
+            // color={useColorModeValue('blackAlpha.600', 'whiteAlpha.600')}
             token={coin.symbol}
           />
         </StatNumber>

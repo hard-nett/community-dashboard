@@ -8,20 +8,17 @@ import {
   Th,
   Td,
   TableContainer,
-  Button,
-  Box,
   Icon,
   Text,
   useColorMode,
 } from '@chakra-ui/react';
 import { ChainName } from '@cosmos-kit/core';
-
-
 import { Token } from './Overview';
-
 import { Logo } from './ModalElements';
 import { shiftDigits, type ExtendedValidator as Validator } from '@/components/utils'
 import { getCoin } from '@/config';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 const AllValidatorsList = ({
   validators,
@@ -39,7 +36,6 @@ const AllValidatorsList = ({
   };
 }) => {
   const coin = getCoin(chainName);
-
   const { colorMode } = useColorMode();
   const hasApr = !!validators[0].apr;
 
@@ -48,9 +44,8 @@ const AllValidatorsList = ({
       <Table variant="simple">
         <Thead>
           <Tr>
-            <Th>Validator</Th>
+            <Th>Validator & Commission</Th>  
             <Th>Voting Power</Th>
-            <Th>Commission</Th>
             {hasApr && <Th>APR</Th>}
           </Tr>
         </Thead>
@@ -59,43 +54,45 @@ const AllValidatorsList = ({
           {validators.map((validator: Validator, index: number) => (
             <Tr key={validator.address}>
               <Td>
-                <Box
-                  display="flex"
-                  alignItems="center"
-                  maxWidth={280}
-                  overflowX="hidden"
-                >
-                  <Text mr={4}>{index + 1}</Text>
+                <div  >
+              <Badge >
+                  <Text padding={4}>{index + 1}</Text>
+                  <br/>
                   <Logo
                     identity={validator.identity}
                     name={validator.name}
                     logoUrl={logos[validator.address]}
                   />
+                  &nbsp;
                   <Text>{validator.name}</Text>
-                </Box>
+                </Badge>
+              <Badge className='commission-badge'>{shiftDigits(validator.commission, -16)}%</Badge>
+                </div>
               </Td>
-              <Td>
+              <Badge>
                 {validator.votingPower.toLocaleString()}&nbsp;
                 <Token color="blackAlpha.800" token={coin.symbol} />
-              </Td>
-              <Td>{shiftDigits(validator.commission, 2)}%</Td>
+              </Badge>
               <Td>
-                <Box width="100%" display="flex" alignItems="center">
-                  {hasApr && <Text>{validator.apr + '%'}</Text>}
+                <Badge >
+              <br/>
+                  {hasApr && <Text>{-(shiftDigits(validator.apr, -16)) + '%'}</Text>}
+                </Badge>
+                <Badge >
                   <Button
-                    variant="ghost"
-                    ml="auto"
+                  size="sm"
                     onClick={() => {
                       openModal();
                       setSelectedValidator(validator);
                     }}
                     color={colorMode === 'light' ? 'purple.600' : 'purple.200'}
                   >
-                    Manage
+                    manage
                     <Icon as={IoArrowForward} />
                   </Button>
-                </Box>
+                  </Badge>
               </Td>
+              <br/>
             </Tr>
           ))}
         </Tbody>

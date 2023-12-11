@@ -1,10 +1,11 @@
 import { Heading, useDisclosure } from '@chakra-ui/react';
 import { useState } from 'react';
 import { ChainName } from '@cosmos-kit/core';
-import { DelegateModal } from './DelegateModal';
+
 import React from 'react';
 import AllValidatorsList from './AllValidatorsList';
-import { type ExtendedValidator as Validator } from '@/utils';
+import { type ExtendedValidator as Validator } from '@/components/utils';
+import { DelegateDialog } from './DelegateDialog';
 
 export const AllValidators = ({
   validators,
@@ -41,7 +42,7 @@ export const AllValidators = ({
       />
 
       {selectedValidator && (
-        <DelegateModal
+        <DelegateDialog
           balance={balance}
           updateData={updateData}
           unbondingDays={unbondingDays}

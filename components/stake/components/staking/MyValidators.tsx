@@ -7,8 +7,8 @@ import { ValidatorInfoModal } from './ValidatorInfoModal';
 import { UndelegateModal } from './UndelegateModal';
 import { SelectValidatorModal } from './SelectValidatorModal';
 import { RedelegateModal } from './RedelegateModal';
-import { type ExtendedValidator as Validator } from '@/utils';
-import { DelegateModal } from './DelegateModal';
+import { type ExtendedValidator as Validator } from '@/components/utils';
+import { DelegateDialog } from './DelegateDialog';
 
 export const MyValidators = ({
   myValidators,
@@ -60,7 +60,7 @@ export const MyValidators = ({
           modalControl={validatorInfoModalControl}
           selectedValidator={selectedValidator}
           handleClick={{
-            openDelegateModal: delegateModalControl.onOpen,
+            openDelegateDialog: delegateModalControl.onOpen,
             openSelectValidatorModal: selectValidatorModalControl.onOpen,
             openUndelegateModal: undelegateModalControl.onOpen,
           }}
@@ -68,7 +68,7 @@ export const MyValidators = ({
       )}
 
       {selectedValidator && delegateModalControl.isOpen && (
-        <DelegateModal
+        <DelegateDialog
           balance={balance}
           chainName={chainName}
           closeOuterModal={validatorInfoModalControl.onClose}

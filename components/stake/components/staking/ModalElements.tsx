@@ -19,6 +19,9 @@ import {
   useColorModeValue,
   Center,
 } from '@chakra-ui/react';
+import { shiftDigits } from '@/components/utils';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export const ValidatorInfo = ({
   logoUrl,
@@ -43,10 +46,12 @@ export const ValidatorInfo = ({
       <Heading as="h4" size="md">
         {name}
       </Heading>
-      <Text>
-        Commission {commission}%&nbsp;
-        {apr && `| APR ${apr}%`}
-      </Text>
+      <Badge>
+        Commission {shiftDigits(commission, -18)}%&nbsp;
+      </Badge>
+      <Badge>
+        {apr && `APR ${-(shiftDigits(apr, -18))}%`}
+      </Badge>
     </Stack>
   </Flex>
 );
@@ -63,13 +68,10 @@ export const Logo = ({
   return (
     <>
       {identity && logoUrl ? (
-        <Image
-          borderRadius="full"
-          boxSize="30px"
-          src={logoUrl}
-          alt={name}
-          mr={2}
-        />
+        <Avatar>
+          <AvatarImage src={logoUrl} />
+          <AvatarFallback>{name}</AvatarFallback>
+        </Avatar>
       ) : (
         <Center boxSize="30px" bgColor="gray.200" borderRadius="full" mr={2}>
           {name && name.trim().slice(0, 1).toUpperCase()}
@@ -100,7 +102,6 @@ export const DelegateWarning = ({
       mt={4}
     >
       <Flex>
-        <AlertIcon />
         <AlertTitle color="red.500">
           Staking will lock your funds for {unbondingDays} days
         </AlertTitle>

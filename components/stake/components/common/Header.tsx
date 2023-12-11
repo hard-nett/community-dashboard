@@ -2,18 +2,12 @@ import {
   Box,
   Heading,
   Text,
-  Button,
   Flex,
-  Icon,
-  useColorMode,
-  useColorModeValue,
 } from '@chakra-ui/react';
-import { BsFillMoonStarsFill, BsFillSunFill } from 'react-icons/bs';
 
-const stacks = ['CosmosKit', 'Next.js'];
 
 export const Header = () => {
-  const { colorMode, toggleColorMode } = useColorMode();
+  // const { colorMode, toggleColorMode } = useColorMode();
 
   return (
     <>

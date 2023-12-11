@@ -1,3 +1,4 @@
+/* eslint-disable  @typescript-eslint/no-explicit-any */
 import { ExtendedValidator as Validator } from './staking';
 
 type ImageSource = {

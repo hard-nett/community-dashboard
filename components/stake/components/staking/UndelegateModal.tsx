@@ -23,7 +23,6 @@ import { getCoin, getExponent } from '@/config';
 import { ChainName } from '@cosmos-kit/core';
 import { useInputBox } from '@/hooks/useInputBox';
 import { useTx } from '@/hooks/useTx';
-;
 
 const { undelegate } = cosmos.staking.v1beta1.MessageComposer.fromPartial;
 

@@ -1,12 +1,9 @@
 import { ChangeEvent, useState } from 'react';
-import {
-  Text,
-  Input,
-  InputGroup,
-  InputRightElement,
-  Button,
-} from '@chakra-ui/react';
 import { StatBox } from '@/components/stake/components/staking/ModalElements';
+import { Input } from '@/components/ui/input';
+import { PageHeaderDescription } from '@/components/utils/page-header';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@interchain-ui/react';
 
 export const InputBox = ({
   label,
@@ -27,35 +24,32 @@ export const InputBox = ({
     label={label}
     token={token}
     input={
-      <InputGroup mt={2}>
+<>
         <Input type="number" value={value} onChange={onChange} />
-        <InputRightElement
-          mr={3}
-          width={24}
-          display="flex"
-          justifyContent="space-between"
+        <div
+className='mr-3 width-24'
         >
           <Button
-            w="42px"
-            h="22px"
-            fontSize="12px"
-            borderRadius="4px"
-            color="white"
-            variant="solid"
-            colorScheme="cyan"
-            fontWeight="bold"
+            // w="42px"
+            // h="22px"
+            // fontSize="12px"
+            // borderRadius="4px"
+            // color="white"
+            // variant="default"
+            // colorScheme="cyan"
+            // fontWeight="bold"
             disabled={isMaxBtnLoading}
             onClick={onMaxClick}
             isLoading={isMaxBtnLoading}
-            _hover={{ cursor: 'pointer' }}
+            // _hover={{ cursor: 'pointer' }}
           >
             MAX
           </Button>
-          <Text fontSize="sm" fontWeight="bold" lineHeight="none">
+          <Badge >
             {token}
-          </Text>
-        </InputRightElement>
-      </InputGroup>
+          </Badge>
+        </div>
+</>
     }
   />
 );
@@ -65,7 +59,7 @@ export const useInputBox = (maxAmount?: number | string) => {
   const [max, setMax] = useState<number | string>(maxAmount || 0);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (Number(e.target.value) > max) {
+    if (Number(e.target.value) > Number(max)) {
       setAmount(max);
       return;
     }

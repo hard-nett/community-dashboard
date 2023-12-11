@@ -4452,6 +4452,17 @@
     "@babel/runtime" "^7.13.10"
     "@radix-ui/react-primitive" "1.0.3"
 
+"@radix-ui/react-avatar@^1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@radix-ui/react-avatar/-/react-avatar-1.0.4.tgz#de9a5349d9e3de7bbe990334c4d2011acbbb9623"
+  integrity sha512-kVK2K7ZD3wwj3qhle0ElXhOjbezIgyl2hVvgwfIdexL3rN6zJmy5AqqIf+D31lxVppdzV8CjAfZ6PklkmInZLw==
+  dependencies:
+    "@babel/runtime" "^7.13.10"
+    "@radix-ui/react-context" "1.0.1"
+    "@radix-ui/react-primitive" "1.0.3"
+    "@radix-ui/react-use-callback-ref" "1.0.1"
+    "@radix-ui/react-use-layout-effect" "1.0.1"
+
 "@radix-ui/react-collection@1.0.3":
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/@radix-ui/react-collection/-/react-collection-1.0.3.tgz#9595a66e09026187524a36c6e7e9c7d286469159"
@@ -5644,6 +5655,13 @@
   version "18.2.17"
   resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-18.2.17.tgz#375c55fab4ae671bd98448dcfa153268d01d6f64"
   integrity sha512-rvrT/M7Df5eykWFxn6MYt5Pem/Dbyc1N8Y0S9Mrkw2WFCRiqUgw9P7ul2NpwsXCSM1DVdENzdG9J5SreqfAIWg==
+  dependencies:
+    "@types/react" "*"
+
+"@types/react-no-ssr@^1.1.6":
+  version "1.1.6"
+  resolved "https://registry.yarnpkg.com/@types/react-no-ssr/-/react-no-ssr-1.1.6.tgz#8b49dac69420d8471809a7232440a000c6389153"
+  integrity sha512-wsR9loM5/yAAl7MCUdb1FAKOZURl1qOAm9n4qBeTqxoc/+IC9Na0/hIalrGQIzQH6isGtMZer9FGosW+eEDPEQ==
   dependencies:
     "@types/react" "*"
 

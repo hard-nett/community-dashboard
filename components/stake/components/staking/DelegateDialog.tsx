@@ -1,12 +1,5 @@
 import {
   Button,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
   Stack,
   UseDisclosureReturn,
 } from '@chakra-ui/react';
@@ -17,18 +10,18 @@ import {
   ValidatorInfo,
 } from './ModalElements';
 import { useState } from 'react';
-
 import { useChain } from '@cosmos-kit/react';
 import { cosmos } from 'interchain-query';
 import { getCoin, getExponent } from '@/config';
 import { StdFee } from '@cosmjs/amino';
 import { ChainName } from '@cosmos-kit/core';
 import BigNumber from 'bignumber.js';
-
 import { type ExtendedValidator as Validator } from '@/components/utils';
 import { isGreaterThanZero, shiftDigits } from '@/components/utils';
 import { useTx } from '@/hooks/useTx';
 import { useInputBox } from '@/hooks/useInputBox';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogOverlay } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 
 const { delegate } = cosmos.staking.v1beta1.MessageComposer.fromPartial;
 
@@ -37,7 +30,7 @@ export type MaxAmountAndFee = {
   fee: StdFee;
 };
 
-export const DelegateModal = ({
+export const DelegateDialog = ({
   balance,
   updateData,
   unbondingDays,
@@ -146,12 +139,12 @@ export const DelegateModal = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onModalClose} size="2xl" isCentered>
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>{modalTitle || 'Delegate'}</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody>
+    <Dialog open={isOpen} onOpenChange={onClose} >
+      <DialogOverlay />
+      <DialogContent>
+        <DialogHeader>{modalTitle || 'Delegate'}</DialogHeader>
+        {/* <DialogClose /> */}
+        <div>
           <ValidatorInfo
             logoUrl={logoUrl}
             name={selectedValidator.name}
@@ -168,11 +161,18 @@ export const DelegateModal = ({
               token={coin.symbol}
               amount={selectedValidator.delegation}
             />
-            <StatBox
+  
+            <Badge>
+              Available to Delegate 
+              <br/>
+              <br/>
+              {/* <StatBox
               label="Available to Delegate"
               amount={balance}
               token={coin.symbol}
-            />
+            /> */}
+            {balance}&nbsp;{coin.symbol}
+            </Badge>
           </Stack>
           {renderInputBox(
             'Amount to Delegate',
@@ -180,9 +180,9 @@ export const DelegateModal = ({
             handleMaxClick,
             isSimulating
           )}
-        </ModalBody>
+        </div>
 
-        <ModalFooter>
+        <DialogFooter>
           <Button
             colorScheme="primary"
             onClick={onDelegateClick}
@@ -193,8 +193,8 @@ export const DelegateModal = ({
           >
             Delegate
           </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

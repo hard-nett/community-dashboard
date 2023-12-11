@@ -27,7 +27,7 @@ export const ValidatorInfoModal = ({
   modalControl: UseDisclosureReturn;
   selectedValidator: Validator;
   handleClick: {
-    openDelegateModal: () => void;
+    openDelegateDialog: () => void;
     openUndelegateModal: () => void;
     openSelectValidatorModal: () => void;
   };
@@ -36,7 +36,7 @@ export const ValidatorInfoModal = ({
   const coin = getCoin(chainName);
 
   const { isOpen, onClose } = modalControl;
-  const { openDelegateModal, openSelectValidatorModal, openUndelegateModal } =
+  const { openDelegateDialog, openSelectValidatorModal, openUndelegateModal } =
     handleClick;
 
   return (
@@ -75,7 +75,7 @@ export const ValidatorInfoModal = ({
           >
             Redelegate
           </Button>
-          <Button colorScheme="primary" onClick={openDelegateModal}>
+          <Button colorScheme="primary" onClick={openDelegateDialog}>
             Delegate
           </Button>
         </ModalFooter>
