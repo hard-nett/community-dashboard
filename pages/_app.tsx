@@ -11,7 +11,8 @@ import React from "react";
 import { SiteHeader } from "@/components/navbars/site-header"
 import { RootLayout } from '@/components/layout'
 import { siteConfig } from "@/config/site"
-import { QueryClientProvider } from 'react-query'
+import { QueryClientProvider } from '@tanstack/react-query';
+
 
 // cosmos chain & wallet imports 
 import { assets, chains as cosmosChains } from "chain-registry";
@@ -66,7 +67,7 @@ const config = createConfig({
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <RootLayout>
-      <QueryClientProvider client={queryClient}>
+   
         <ChainProvider
           chains={[...cosmosChains]}
           assetLists={[...assets]}
@@ -115,12 +116,13 @@ export default function App({ Component, pageProps }: AppProps) {
           <SiteHeader />
           <WagmiConfig config={config}>
             <Toaster position="top-right" />
+            <QueryClientProvider client={queryClient}>
             <Layout metadata={getComponentMetadata(Component)}>
               <Component {...pageProps} />
             </Layout>
+      </QueryClientProvider>
      </WagmiConfig>
         </ChainProvider>
-      </QueryClientProvider>
     </RootLayout>
 
   )

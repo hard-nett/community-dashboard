@@ -42,7 +42,7 @@ export function MainNav() {
           Guides
         </Link>
         <Link
-          href={siteConfig.links.github}
+          href={siteConfig.links.docs }
           className={cn(
             "transition-colors hover:text-foreground/80",
             pathname?.startsWith("/themes")

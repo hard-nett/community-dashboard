@@ -1,9 +1,12 @@
-import { QueryClient } from 'react-query'
+import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
+
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      notifyOnChangeProps: 'tracked',
+      retry: 2,
+      // notifyOnChangeProps: 'tracked',
+      refetchOnWindowFocus: false,
     },
   },
 })

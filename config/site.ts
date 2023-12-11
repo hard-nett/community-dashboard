@@ -7,6 +7,7 @@ export const siteConfig = {
     links: {
       twitter: "https://twitter.com/terpculture",
       github: "https://github.com/terpnetwork/community-dashboard",
+      docs: "https://github.com/terpnetwork/docs",
       forum: "https://interchain.builders/c/terp"
     },
   }
