@@ -1,12 +1,5 @@
 import {
   Button,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
   Stack,
   UseDisclosureReturn,
 } from '@chakra-ui/react';
@@ -19,10 +12,11 @@ import {
 import { useState } from 'react';
 import { cosmos } from 'interchain-query';
 import { useChain } from '@cosmos-kit/react';
-import { getCoin, getExponent } from '@/config';
+import { getStakingCoin, getExponent } from '@/config';
 import { ChainName } from '@cosmos-kit/core';
 import { useInputBox } from '@/hooks/useInputBox';
 import { useTx } from '@/hooks/useTx';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogOverlay } from '@/components/ui/dialog';
 
 const { undelegate } = cosmos.staking.v1beta1.MessageComposer.fromPartial;
 
@@ -47,7 +41,7 @@ export const UndelegateModal = ({
   const { address } = useChain(chainName);
   const { tx } = useTx(chainName);
 
-  const coin = getCoin(chainName);
+  const coin = getStakingCoin(chainName);
   const exp = getExponent(chainName);
 
   const {
@@ -88,17 +82,12 @@ export const UndelegateModal = ({
   };
 
   return (
-    <Modal
-      isOpen={modalControl.isOpen}
-      onClose={closeUndelegateModal}
-      size="2xl"
-      isCentered
-    >
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Undelegate</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody>
+    <Dialog open={modalControl.isOpen} onOpenChange={modalControl.onClose} >
+      <DialogOverlay />
+      <DialogContent>
+        <DialogHeader>Undelegate</DialogHeader>
+        {/* <ModalCloseButton /> */}
+        <div>
           <ValidatorInfo
             logoUrl={logoUrl}
             name={selectedValidator.name}
@@ -114,8 +103,8 @@ export const UndelegateModal = ({
             />
             {renderUndelegateInputBox('Amount to Undelegate', coin.symbol)}
           </Stack>
-        </ModalBody>
-        <ModalFooter>
+        </div>
+        <DialogFooter>
           <Button
             colorScheme="primary"
             onClick={onUndelegateClick}
@@ -124,8 +113,8 @@ export const UndelegateModal = ({
           >
             Undelegate
           </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

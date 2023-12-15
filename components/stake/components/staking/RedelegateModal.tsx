@@ -1,11 +1,5 @@
 import {
   Button,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalOverlay,
   Stack,
   Text,
   UseDisclosureReturn,
@@ -14,11 +8,12 @@ import { StatBox } from './ModalElements';
 import { useEffect, useState } from 'react';
 import { cosmos } from 'interchain-query';
 import { useChain } from '@cosmos-kit/react';
-import { getCoin, getExponent } from '@/config';
+import { getStakingCoin, getExponent } from '@/config';
 import { ChainName } from '@cosmos-kit/core';
 import { isGreaterThanZero, shiftDigits, type ExtendedValidator as Validator } from '@/components/utils';
 import { useTx } from '@/hooks/useTx';
 import { useInputBox } from '@/hooks/useInputBox';
+import { Dialog, DialogContent, DialogFooter, DialogOverlay } from '@/components/ui/dialog';
 
 const { beginRedelegate } = cosmos.staking.v1beta1.MessageComposer.fromPartial;
 
@@ -39,7 +34,7 @@ export const RedelegateModal = ({
 
   const [isRedelegating, setIsRedelegating] = useState(false);
 
-  const coin = getCoin(chainName);
+  const coin = getStakingCoin(chainName);
   const exp = getExponent(chainName);
 
   const { tx } = useTx(chainName);
@@ -87,17 +82,14 @@ export const RedelegateModal = ({
   };
 
   return (
-    <Modal
-      isOpen={modalControl.isOpen}
-      onClose={closeRedelegateModal}
-      size="2xl"
-      isCentered
+    <Dialog
+      open={modalControl.isOpen}
+      onOpenChange={closeRedelegateModal}
     >
-      <ModalOverlay />
-      <ModalContent>
-        <ModalCloseButton />
-
-        <ModalBody>
+      <DialogOverlay />
+      <DialogContent>
+        {/* <ModalCloseButton /> */}
+        <div>
           <Stack direction="row" mt={8} mb={2}>
             <Text>From </Text>
             <Text size="lg" fontWeight="bold">
@@ -117,9 +109,9 @@ export const RedelegateModal = ({
             </Text>
           </Stack>
           {renderRedelegateInputBox('Amount to Redelegate', coin.symbol)}
-        </ModalBody>
+        </div>
 
-        <ModalFooter>
+        <DialogFooter>
           <Button
             colorScheme="primary"
             onClick={onRedelegateClick}
@@ -128,8 +120,8 @@ export const RedelegateModal = ({
           >
             Redelegate
           </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

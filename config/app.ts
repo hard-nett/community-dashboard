@@ -8,9 +8,13 @@ export interface MappedCoin {
 
 export const defaultChainName = 'terpnetwork';
 
-export const getCoin = (chainName: string = defaultChainName) => {
+export const getStakingCoin = (chainName: string = defaultChainName) => {
   const chainAssets = getChainAssets(chainName);
   return chainAssets.assets[0] as Asset;
+};
+export const getFeeCoin = (chainName: string = defaultChainName) => {
+  const chainAssets = getChainAssets(chainName);
+  return chainAssets.assets[1] as Asset;
 };
 
 export const getChainAssets = (chainName: string = defaultChainName) => {
@@ -18,8 +22,8 @@ export const getChainAssets = (chainName: string = defaultChainName) => {
 };
 
 export const getExponent = (chainName: string) => {
-  return getCoin(chainName).denom_units.find(
-    (unit) => unit.denom === getCoin(chainName).display
+  return getStakingCoin(chainName).denom_units.find(
+    (unit) => unit.denom === getStakingCoin(chainName).display
   )?.exponent as number;
 };
 

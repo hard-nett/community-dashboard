@@ -1,15 +1,16 @@
 import { useChain } from '@cosmos-kit/react';
-import { Box, Center, Spinner, Text } from '@chakra-ui/react';
+import { Box, Center, Spinner } from '@chakra-ui/react';
 import Overview from './Overview';
 import { MyValidators } from './MyValidators';
 import { AllValidators } from './AllValidators';
 import { ChainName } from '@cosmos-kit/core';
 import { useValidatorLogos } from '@/hooks/useValidatorLogos';
 import { useStakingData } from '@/hooks/useStakingData';
+import { Button } from '@/components/ui/button';
 
 
 export const StakingSection = ({ chainName }: { chainName: ChainName }) => {
-  const { isWalletConnected } = useChain(chainName);
+  const { isWalletConnected, connect } = useChain(chainName);
   const { data, isLoading, refetch } = useStakingData(chainName);
   const { data: logos, isLoading: isFetchingLogos } = useValidatorLogos(
     chainName,
@@ -20,9 +21,9 @@ export const StakingSection = ({ chainName }: { chainName: ChainName }) => {
     <Box my={14}>
       {!isWalletConnected ? (
         <Center h={48} width="100%">
-          <Text fontWeight="600" fontSize="20px">
+        <Button onClick={() => connect()}>
             Please connect the wallet
-          </Text>
+          </Button>
         </Center>
       ) : isLoading || isFetchingLogos || !data ? (
         <Center h={48} width="100%">

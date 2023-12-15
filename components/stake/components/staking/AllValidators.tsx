@@ -1,4 +1,4 @@
-import { Heading, useDisclosure } from '@chakra-ui/react';
+import {  useDisclosure } from '@chakra-ui/react';
 import { useState } from 'react';
 import { ChainName } from '@cosmos-kit/core';
 
@@ -6,6 +6,7 @@ import React from 'react';
 import AllValidatorsList from './AllValidatorsList';
 import { type ExtendedValidator as Validator } from '@/components/utils';
 import { DelegateDialog } from './DelegateDialog';
+import {  PageHeaderHeading } from '@/components/utils/page-header';
 
 export const AllValidators = ({
   validators,
@@ -29,9 +30,9 @@ export const AllValidators = ({
 
   return (
     <>
-      <Heading as="h4" size="md" mt={12} mb={6}>
+      <PageHeaderHeading >
         All Validators
-      </Heading>
+      </PageHeaderHeading>
 
       <AllValidatorsList
         validators={validators}

@@ -1,20 +1,14 @@
 import React from 'react';
 import {
   Button,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
   UseDisclosureReturn,
 } from '@chakra-ui/react';
 import { ValidatorInfo, ValidatorDesc, StatBox } from './ModalElements';
 
 import { ChainName } from '@cosmos-kit/core';
 import { shiftDigits, type ExtendedValidator as Validator } from '@/components/utils';
-import { getCoin } from '@/config';
+import { getStakingCoin } from '@/config';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogOverlay } from '@/components/ui/dialog';
 
 export const ValidatorInfoModal = ({
   chainName,
@@ -33,20 +27,20 @@ export const ValidatorInfoModal = ({
   };
   logoUrl: string;
 }) => {
-  const coin = getCoin(chainName);
+  const coin = getStakingCoin(chainName);
 
   const { isOpen, onClose } = modalControl;
   const { openDelegateDialog, openSelectValidatorModal, openUndelegateModal } =
     handleClick;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl" isCentered>
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Validator</ModalHeader>
-        <ModalCloseButton />
+    <Dialog open={isOpen} onOpenChange={onClose} size="2xl" isCentered>
+      <DialogOverlay />
+      <DialogContent>
+        <DialogHeader>Validator</DialogHeader>
+        {/* <ModalCloseButton /> */}
 
-        <ModalBody>
+        <div>
           <ValidatorInfo
             logoUrl={logoUrl}
             name={selectedValidator.name}
@@ -59,9 +53,9 @@ export const ValidatorInfoModal = ({
             amount={selectedValidator.delegation}
             token={coin.symbol}
           />
-        </ModalBody>
+        </div>
 
-        <ModalFooter>
+        <DialogFooter>
           <Button colorScheme="gray" onClick={openUndelegateModal} mr={4}>
             Undelegate
           </Button>
@@ -78,8 +72,8 @@ export const ValidatorInfoModal = ({
           <Button colorScheme="primary" onClick={openDelegateDialog}>
             Delegate
           </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

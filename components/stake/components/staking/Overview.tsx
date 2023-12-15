@@ -14,7 +14,7 @@ import { ChainName } from '@cosmos-kit/core';
 
 import { type ParsedRewards as Rewards } from '@/utils/staking';
 
-import { getCoin } from '@/config';
+import { getFeeCoin, getStakingCoin } from '@/config';
 import { useTx } from '@/hooks/useTx';
 import { isGreaterThanZero, sum } from '@/components/utils';
 import { Badge } from '@/components/ui/badge';
@@ -50,7 +50,8 @@ const Overview = ({
   const { tx } = useTx(chainName);
 
   const totalAmount = sum(balance, staked, rewards.total);
-  const coin = getCoin(chainName);
+  const coin = getStakingCoin(chainName);
+  const feeCoin = getFeeCoin(chainName);
 
   const onClaimRewardClick = async () => {
     setIsClaiming(true);
@@ -125,7 +126,7 @@ const Overview = ({
           {rewards.total}&nbsp;
           <Token
             // color={useColorModeValue('blackAlpha.600', 'whiteAlpha.600')}
-            token={coin.symbol}
+            token={feeCoin.symbol}
           />
         </StatNumber>
         <Button

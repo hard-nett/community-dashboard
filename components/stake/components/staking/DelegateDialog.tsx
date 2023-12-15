@@ -12,7 +12,7 @@ import {
 import { useState } from 'react';
 import { useChain } from '@cosmos-kit/react';
 import { cosmos } from 'interchain-query';
-import { getCoin, getExponent } from '@/config';
+import { getStakingCoin, getExponent } from '@/config';
 import { StdFee } from '@cosmjs/amino';
 import { ChainName } from '@cosmos-kit/core';
 import BigNumber from 'bignumber.js';
@@ -22,6 +22,7 @@ import { useTx } from '@/hooks/useTx';
 import { useInputBox } from '@/hooks/useInputBox';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogOverlay } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import toast from 'react-hot-toast';
 
 const { delegate } = cosmos.staking.v1beta1.MessageComposer.fromPartial;
 
@@ -58,9 +59,9 @@ export const DelegateDialog = ({
 
   const [isDelegating, setIsDelegating] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
-  const [maxAmountAndFee, setMaxAmountAndFee] = useState<MaxAmountAndFee>();
+  // const [maxAmountAndFee, setMaxAmountAndFee] = useState<MaxAmountAndFee>();
 
-  const coin = getCoin(chainName);
+  const coin = getStakingCoin(chainName);
   const exp = getExponent(chainName);
   const { tx } = useTx(chainName);
 
@@ -87,12 +88,18 @@ export const DelegateDialog = ({
       },
     });
 
-    const isMaxAmountAndFeeExists =
-      maxAmountAndFee &&
-      new BigNumber(amount).isEqualTo(maxAmountAndFee.maxAmount);
+    const fee = {
+      amount: [{ denom: "uthiol", amount: "5000" }],
+      gas: "500000",
+    };
+
+    // const isMaxAmountAndFeeExists =
+    //   maxAmountAndFee &&
+    //   new BigNumber(amount).isEqualTo(maxAmountAndFee.maxAmount);
 
     await tx([msg], {
-      fee: isMaxAmountAndFeeExists ? maxAmountAndFee.fee : null,
+      // fee: isMaxAmountAndFeeExists ? maxAmountAndFee.fee : null,
+      fee: fee,
       onSuccess: () => {
         setMaxAmountAndFee(undefined);
         closeOuterModal && closeOuterModal();
@@ -131,9 +138,9 @@ export const DelegateDialog = ({
         .toString();
       setMaxAmountAndFee({ fee, maxAmount: balanceAfterFee });
       setAmount(balanceAfterFee);
-    } catch (error) {
-      console.log(error);
-    } finally {
+    } catch (e) {
+      toast.error(`${e}`)
+        } finally {
       setIsSimulating(false);
     }
   };

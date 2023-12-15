@@ -12,7 +12,7 @@ import {
   Text,
   useColorMode,
 } from '@chakra-ui/react';
-import { Token } from './Overview';
+
 import { IoArrowForward } from 'react-icons/io5';
 import { Dispatch, SetStateAction } from 'react';
 
@@ -20,7 +20,8 @@ import { ChainName } from '@cosmos-kit/core';
 import React from 'react';
 import { Logo } from './ModalElements';
 import { type ExtendedValidator as Validator } from '@/components/utils';
-import { getCoin } from '@/config';
+import { getStakingCoin, getFeeCoin, } from '@/config';
+import { Badge } from '@/components/ui/badge';
 
 const MyValidatorsList = ({
   myValidators,
@@ -37,7 +38,8 @@ const MyValidatorsList = ({
     [key: string]: string;
   };
 }) => {
-  const coin = getCoin(chainName);
+  const coin = getStakingCoin(chainName);
+  const feecoin = getFeeCoin(chainName);
 
   const { colorMode } = useColorMode();
 
@@ -55,31 +57,27 @@ const MyValidatorsList = ({
           {myValidators.map((validator, index) => (
             <Tr key={validator.name}>
               <Td>
-                <Box
-                  display="flex"
-                  alignItems="center"
-                  maxWidth={280}
-                  overflowX="hidden"
-                >
-                  <Text mr={4}>{index + 1}</Text>
+              <Badge className='flex'>
+                  <Text padding={4}>{index + 1}</Text>
                   <Logo
                     identity={validator.identity}
                     name={validator.name}
                     logoUrl={logos[validator.address]}
                   />
-                  <Text>{validator.name}</Text>
-                </Box>
+                     &nbsp;
+              {validator.name}
+              </Badge>
               </Td>
               <Td>
-                {validator.delegation}&nbsp;
-                <Token color="blackAlpha.800" token={coin.symbol} />
+                <Badge>
+                {validator.delegation}&nbsp; {coin.symbol} 
+                </Badge>
               </Td>
               <Td>
                 <Box width="100%" display="flex" alignItems="center">
-                  <span>
-                    {validator.reward}&nbsp;
-                    <Token color="blackAlpha.800" token={coin.symbol} />
-                  </span>
+                  <Badge>
+                    {validator.reward}&nbsp;{feecoin.symbol}
+                  </Badge>
                   <Button
                     variant="ghost"
                     ml="auto"
@@ -89,9 +87,11 @@ const MyValidatorsList = ({
                     }}
                     color={colorMode === 'light' ? 'purple.600' : 'purple.200'}
                   >
-                    Manage
+                       <Badge>
+                    manage
                     <Icon as={IoArrowForward} />
-                  </Button>
+                  </Badge>
+                    </Button> 
                 </Box>
               </Td>
             </Tr>

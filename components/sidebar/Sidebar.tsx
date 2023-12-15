@@ -88,16 +88,16 @@ export const Sidebar = () => {
               <li
                   className={clsx(
                     'text-lg font-bold hover:text-white hover:bg-stargaze-80 rounded',
-                    router.asPath.includes('https://ping.pub/terp/staking') ? 'text-white' : 'text-gray',
+                    router.asPath.includes('/w/stake') ? 'text-white' : 'text-gray',
                   )}
                   tabIndex={-1}
                 >
-                  <Link href="https://ping.pub/terp/staking">Stake TERP</Link>
+                  <Link href="/w/stake">Stake TERP</Link>
                 </li>
                 <li
                   className={clsx(
                     'text-lg font-bold hover:text-white hover:bg-stargaze-80 rounded',
-                    router.asPath.includes('https://ping.pub/terp/staking') ? 'text-white' : 'text-gray',
+                    router.asPath.includes('/w/stake') ? 'text-white' : 'text-gray',
                   )}
                   tabIndex={-1}
                 >

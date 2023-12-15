@@ -16,7 +16,7 @@ import { ChainName } from '@cosmos-kit/core';
 import { Token } from './Overview';
 import { Logo } from './ModalElements';
 import { shiftDigits, type ExtendedValidator as Validator } from '@/components/utils'
-import { getCoin } from '@/config';
+import {  getStakingCoin } from '@/config';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -35,7 +35,8 @@ const AllValidatorsList = ({
     [key: string]: string;
   };
 }) => {
-  const coin = getCoin(chainName);
+  const coin = getStakingCoin(chainName);
+  // const feeCoin = getFeeCoin(chainName);
   const { colorMode } = useColorMode();
   const hasApr = !!validators[0].apr;
 

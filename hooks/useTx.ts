@@ -4,6 +4,7 @@ import { useToaster, ToastType, type CustomToast } from './useToaster';
 import { useChain } from '@cosmos-kit/react';
 import { ToastId } from '@chakra-ui/react';
 import { TxRaw } from 'interchain-query/cosmos/tx/v1beta1/tx';
+import toast from 'react-hot-toast';
 
 interface Msg {
   typeUrl: string;
@@ -58,12 +59,12 @@ export const useTx = (chainName: string) => {
       }
       signed = await client.sign(address, msgs, fee, '');
     } catch (e: any) {
-      console.error(e);
-      toaster.toast({
-        title: TxStatus.Failed,
-        message: e?.message || 'An unexpected error has occured',
-        type: ToastType.Error,
-      });
+      toast.error(`${e}`)
+      // toaster.toast({
+      //   title: TxStatus.Failed,
+      //   message: e?.message || 'An unexpected error has occured',
+      //   type: ToastType.Error,
+      // });
       return;
     }
 
@@ -82,28 +83,30 @@ export const useTx = (chainName: string) => {
         .then((res) => {
           if (isDeliverTxSuccess(res)) {
             if (options.onSuccess) options.onSuccess();
-
-            toaster.toast({
-              title: options.toast?.title || TxStatus.Successful,
-              type: options.toast?.type || ToastType.Success,
-              message: options.toast?.message,
-            });
+            toast.error(`${res}`)
+            // toaster.toast({
+            //   title: options.toast?.title || TxStatus.Successful,
+            //   type: options.toast?.type || ToastType.Success,
+            //   message: options.toast?.message,
+            // });
           } else {
-            toaster.toast({
-              title: TxStatus.Failed,
-              message: res?.rawLog,
-              type: ToastType.Error,
-              duration: 10000,
-            });
+            toast.error(`${res?.rawLog}`)
+            // toaster.toast({
+            //   title: TxStatus.Failed,
+            //   message: res?.rawLog,
+            //   type: ToastType.Error,
+            //   duration: 10000,
+            // });
           }
         })
         .catch((err) => {
-          toaster.toast({
-            title: TxStatus.Failed,
-            message: err?.message,
-            type: ToastType.Error,
-            duration: 10000,
-          });
+          toast.error(`${err.message}`)
+          // toaster.toast({
+          //   title: TxStatus.Failed,
+          //   message: err?.message,
+          //   type: ToastType.Error,
+          //   duration: 10000,
+          // });
         })
         .finally(() => toaster.close(broadcastToastId));
     } else {

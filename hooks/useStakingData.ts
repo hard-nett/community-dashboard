@@ -7,7 +7,7 @@ import {
   useRpcEndpoint,
   createRpcQueryHooks,
 } from 'interchain-query';
-import { getCoin, getExponent } from '../config';
+import { getStakingCoin, getExponent } from '../config';
 import {
   calcTotalDelegation,
   extendValidators,
@@ -26,7 +26,7 @@ import { shiftDigits } from '@/components/utils';
 export const useStakingData = (chainName: string) => {
   const { address, getRpcEndpoint } = useChain(chainName);
 
-  const coin = getCoin(chainName);
+  const coin = getStakingCoin(chainName);
   const exp = getExponent(chainName);
 
   const rpcEndpointQuery = useRpcEndpoint({

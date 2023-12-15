@@ -6,24 +6,19 @@ import {
   Th,
   Td,
   TableContainer,
-  Box,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalHeader,
-  ModalOverlay,
   Text,
   useColorMode,
   UseDisclosureReturn,
 } from '@chakra-ui/react';
 import { Token } from './Overview';
 
-import { getCoin } from '@/config';
+import { getStakingCoin } from '@/config';
 import { ChainName } from '@cosmos-kit/core';
 import { Logo } from './ModalElements';
 import { type ExtendedValidator as Validator } from '@/components/utils';
 import { shiftDigits } from '@/components/utils';
+import { Dialog, DialogContent, DialogHeader, DialogOverlay } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 
 export const SelectValidatorModal = ({
   allValidators,
@@ -40,31 +35,27 @@ export const SelectValidatorModal = ({
     [key: string]: string;
   };
 }) => {
-  const coin = getCoin(chainName);
+  const coin = getStakingCoin(chainName);
   const { colorMode } = useColorMode();
-  const hasApr = !!allValidators[0].apr;
+  // const hasApr = !!allValidators[0].apr;
 
   return (
-    <Modal
-      isOpen={modalControl.isOpen}
-      onClose={modalControl.onClose}
-      size="4xl"
-      isCentered
+    <Dialog
+      open={modalControl.isOpen}
+      onOpenChange={modalControl.onClose}
     >
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Redelegate to</ModalHeader>
-        <ModalCloseButton />
+      <DialogOverlay />
+      <DialogContent>
+        <DialogHeader>Redelegate to</DialogHeader>
+        {/* <ModalCloseButton /> */}
 
-        <ModalBody>
+        <div>
           <TableContainer maxH={600} overflowY="scroll">
             <Table variant="simple">
               <Thead>
                 <Tr>
                   <Th>Validator</Th>
-                  <Th>Voting Power</Th>
-                  <Th>Commission</Th>
-                  {hasApr && <Th>APR</Th>}
+                  <Th>Voting Power    Commission APR</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -79,40 +70,35 @@ export const SelectValidatorModal = ({
                     }}
                   >
                     <Td>
-                      <Box
-                        display="flex"
-                        alignItems="center"
-                        maxWidth={280}
-                        overflowX="hidden"
-                      >
+                      <Badge>
                         <Text mr={4}>{index + 1}</Text>
                         <Logo
                           identity={validator.identity}
                           name={validator.name}
                           logoUrl={logos[validator.address]}
-                        />
+                        /> 
+                        &nbsp;
                         <Text>{validator.name}</Text>
-                      </Box>
+                      </Badge>
                     </Td>
                     <Td>
+                    <Badge>
                       {validator.votingPower.toLocaleString()}&nbsp;
                       <Token color="blackAlpha.800" token={coin.symbol} />
+                      </Badge>
+                    <Badge >
+                    {shiftDigits(validator.commission, -16)}%
+                    <br/>
+                      {-(shiftDigits(validator.apr, -16)) + '%'} 
+                      </Badge>
                     </Td>
-                    <Td>{shiftDigits(validator.commission, 2)}%</Td>
-                    {hasApr && (
-                      <Td>
-                        <Box width="100%" display="flex" alignItems="center">
-                          <Text>{validator.apr + '%'}</Text>
-                        </Box>
-                      </Td>
-                    )}
                   </Tr>
                 ))}
               </Tbody>
             </Table>
           </TableContainer>
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };

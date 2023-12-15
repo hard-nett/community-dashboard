@@ -8,7 +8,7 @@ import {
   Image,
   AlertDescription,
   Alert,
-  AlertIcon,
+
   AlertTitle,
   Box,
   Stat,
@@ -130,7 +130,7 @@ export const UndelegateWarning = ({
       bgColor="red.50"
     >
       <Flex>
-        <AlertIcon />
+        {/* <AlertIcon /> */}
         <AlertTitle color="red.500">
           Once the unbonding period begins you will:
         </AlertTitle>
