@@ -22,12 +22,20 @@ import { APIContextProvider } from 'context/APIContext'
 // mixpanel
 import mixpanel from 'mixpanel-browser'
 import Bridge from 'pages/bridge/Bridge'
-import Headstash  from 'pages/headstash/Headstash'
+import Headstash from 'pages/headstash/Headstash'
 import GetSCRT from 'pages/get-scrt/GetScrt'
 import Dashboard from 'pages/dashboard/Dashboard'
 import DefaultLayout from 'layouts/DefaultLayout'
 import Powertools from 'pages/powertools/Powertools'
 import { useSecretNetworkClientStore } from 'store/secretNetworkClient'
+
+// ibc client
+// import { assets, chains as cosmosChains } from "chain-registry";
+// import { ChainProvider } from "@cosmos-kit/react";
+// import { wallets as keplrWallets } from "@cosmos-kit/keplr";
+// import { wallets as leapWallets } from "@cosmos-kit/leap";
+// import { wallets as snapWallet } from "@cosmos-kit/leap-metamask-cosmos-snap";
+// import { wallets as ledgerWallets } from "@cosmos-kit/ledger";
 
 import { http, createConfig, WagmiConfig, WagmiProvider } from 'wagmi'
 import { mainnet, sepolia } from 'wagmi/chains'
@@ -46,21 +54,21 @@ export const websiteName = 'Secret Dashboard'
 
 globalThis.Buffer = Buffer
 declare global {
-  interface Window extends KeplrWindow { }
+  interface Window extends KeplrWindow {}
 }
 window.addEventListener('keplr_keystorechange', () => {
   console.log('Key store in Keplr is changed. Refreshing page.')
   location.reload()
 })
 
-// wagmi config  
-const queryClient = new QueryClient() 
+// wagmi config
+const queryClient = new QueryClient()
 export const config = createConfig({
   chains: [mainnet, sepolia],
   transports: {
     [mainnet.id]: http(),
-    [sepolia.id]: http(),
-  },
+    [sepolia.id]: http()
+  }
 })
 class ErrorBoundary extends React.Component<{ children: any }, { hasError: boolean }> {
   constructor(props: any) {
@@ -96,13 +104,26 @@ root.render(
     <BrowserRouter>
       <ThemeContextProvider>
         <APIContextProvider>
+          {/* <ChainProvider
+          chains={[...cosmosChains]}
+          assetLists={[...assets]}
+          wallets={[
+            ...leapWallets,
+            ...snapWallet,
+            ...keplrWallets,
+            ...ledgerWallets,
+            // ...web3AuthWallets,
+          ]}
+          throwErrors={false}
+        > */}
           <WagmiProvider config={config}>
-          <QueryClientProvider client={queryClient}> 
-            <DefaultLayout>
-              <App />
-            </DefaultLayout>
+            <QueryClientProvider client={queryClient}>
+              <DefaultLayout>
+                <App />
+              </DefaultLayout>
             </QueryClientProvider>
           </WagmiProvider>
+          {/* </ChainProvider> */}
         </APIContextProvider>
       </ThemeContextProvider>
     </BrowserRouter>
