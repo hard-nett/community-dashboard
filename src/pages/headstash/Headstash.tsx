@@ -1,5 +1,3 @@
-import { faArrowUpRightFromSquare, faShuffle } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import {
@@ -14,9 +12,7 @@ import {
 import mixpanel from 'mixpanel-browser'
 import { useEffect, useState, useContext } from 'react'
 import { trackMixPanelEvent } from 'utils/commons'
-import SquidModal from './SquidModal'
 import { ThemeContext } from 'context/ThemeContext'
-import HoudiniModal from './HoudiniModal'
 import { useSecretNetworkClientStore } from 'store/secretNetworkClient'
 import { useIsClient } from 'hooks/useIsClient'
 import Title from 'components/Title'
@@ -25,26 +21,39 @@ import { proofData, headstashData } from 'lib/headstash'
 import toast from 'react-hot-toast'
 import Wallet from 'components/Wallet/Wallet'
 import Button from 'components/UI/Button/Button'
-import { MsgExecuteContract, MsgExecuteContractResponse, toUtf8 } from 'secretjs'
+import {
+  EncryptionUtilsImpl,
+  MsgExecuteContract,
+  MsgExecuteContractResponse,
+  SecretNetworkClient,
+  toUtf8
+} from 'secretjs'
 import ProofComponent from 'components/Headstash/proof'
 
 function Headstash() {
-  useEffect(() => {
-    trackMixPanelEvent('Open Bridge Tab')
-  }, [])
-
   const { theme } = useContext(ThemeContext)
   const [eth_pubkey, setEthPubkey] = useState('')
   const [eth_sig] = useState('')
   const [amount, setAmount] = useState('')
-  const [viewing_key, setViewingKey] = useState('')
   const formattedTerpAmount = `${amount.slice(0, 5)}.${amount.slice(5)} $TERP`
   const formattedThiolAmount = `${amount.slice(0, 5)}.${amount.slice(5)} $THIOL`
   const [proofs, setProofs] = useState<string[]>([''])
   const isClient = useIsClient()
   const [isVerified, setIsVerified] = useState(false)
 
-  const { walletAddress, isConnected, secretNetworkClient, setSecretNetworkClient } = useSecretNetworkClientStore()
+  const { walletAddress, isConnected, secretNetworkClient, setViewingKey } = useSecretNetworkClientStore()
+
+  const ibcSecretThiolContract = ''
+  const ibcSecretTerpContract = ''
+
+  // temporary client for testing signing key, will migrate to use secretNetworkClient
+  const txEncryptionSeed = EncryptionUtilsImpl.GenerateNewSeed()
+  const secretjs = new SecretNetworkClient({
+    url: 'https://api.pulsar.scrttestnet.com',
+    walletAddress: walletAddress,
+    chainId: 'pulsar-2',
+    encryptionSeed: txEncryptionSeed
+  })
 
   useEffect(() => {
     const handleWalletDisconnect = () => {
@@ -124,10 +133,35 @@ function Headstash() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Message Rejected.')
+      toast.error(`${err}`)
     }
   }
 
+  // TODO: get randomness from nois
+  const entropy = 'Another really random thing'
+
+  const viewingKey = async () => {
+    try {
+      let handleMsg = { create_viewing_key: { entropy: entropy } }
+      console.log('Creating viewing key')
+      let tx = await secretNetworkClient.tx.compute.executeContract(
+        {
+          sender: walletAddress,
+          contract_address: ibcSecretTerpContract,
+          // code_hash: , // optional but way faster
+          msg: handleMsg,
+          sent_funds: [] // optional
+        },
+        {
+          gasLimit: 100_000
+        }
+      )
+      console.log(tx)
+    } catch (tx) {
+      console.error(tx)
+      toast.error(`${tx}`)
+    }
+  }
   const resetProofs = () => {
     setProofs([''])
   }
@@ -169,6 +203,7 @@ function Headstash() {
   // };
 
   // claim headstash
+
   const executeContract = async () => {
     try {
       // ensure keplr is connected
@@ -214,41 +249,45 @@ function Headstash() {
   }
 
   // fetch headstash data
-  useEffect(() => {
-    console.log('Status:', isConnected)
-    console.log('Address:', walletAddress)
-    console.log('Metamask:', eth_pubkey)
-    console.log('EthSig:', eth_sig)
-    console.log('Proofs')
+  // useEffect(() => {
+  //   console.log('Status:', isConnected)
+  //   console.log('Address:', walletAddress)
+  //   console.log('Metamask:', eth_pubkey)
+  //   console.log('EthSig:', eth_sig)
+  //   console.log('Proofs')
 
-    const fetchHeadstashData = async (eth_pubkey: string) => {
-      try {
-        if (isConnected && eth_pubkey) {
-          const headstashVault = headstashData.find((data) => data.address === eth_pubkey)
-          const proofVault = proofData.find((data) => data.address === eth_pubkey)
+  //   const fetchHeadstashData = async (eth_pubkey: string) => {
+  //     try {
+  //       if (isConnected && eth_pubkey) {
+  //         // Function to find an address in the array
+  //         const findAddress = (eth_pubkey: string) => {
+  //           return lodash.find(headstashData, { 'address': eth_pubkey });
+  //         };
+  //         const headstashVault = headstashData.find((data) => data.address === eth_pubkey)
+  //         const proofVault = proofData.find((data) => data.address === eth_pubkey)
 
-          if (headstashVault) {
-            setAmount(headstashVault.amount)
-          } else {
-            setAmount('Not Eligible')
-          }
-          if (proofVault) {
-            setProofs(proofVault.proof)
-            console.log(proofs)
-          } else {
-            setProofs(['No proofs were found'])
-            console.log(proofs)
-          }
-        }
-      } catch (error) {
-        setAmount('fetch if eligible error')
-        setProofs(['Error fetching data'])
-        console.error('Error fetching data', error)
-      }
-    }
+  //         if (headstashVault) {
+  //           setAmount(headstashVault.amount)
+  //         } else {
+  //           setAmount('Not Eligible')
+  //         }
+  //         if (proofVault) {
+  //           setProofs(proofVault.proof)
+  //           console.log(proofs)
+  //         } else {
+  //           setProofs(['No proofs were found'])
+  //           console.log(proofs)
+  //         }
+  //       }
+  //     } catch (error) {
+  //       setAmount('fetch if eligible error')
+  //       setProofs(['Error fetching data'])
+  //       console.error('Error fetching data', error)
+  //     }
+  //   }
 
-    void fetchHeadstashData(eth_pubkey)
-  }, [isConnected, eth_pubkey, walletAddress])
+  //   void fetchHeadstashData(eth_pubkey)
+  // }, [isConnected, eth_pubkey, walletAddress])
 
   return (
     <>
@@ -285,39 +324,39 @@ function Headstash() {
         </center>
         {amount !== 'Not Eligible' ? formattedTerpAmount : 'Not Eligible'}
         {amount !== 'Not Eligible' ? formattedThiolAmount : ''}
+        <div style={{ filter: isConnected && eth_pubkey ? 'none' : 'blur(5px)' }}>
+          <Title title={'2. Create Signing Key'} />
 
-        <Title title={'2. Create Signing Key'} />
-        <a
-          target="_blank"
-          className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
-          // onClick={createSignKey}
-        >
-          Create Signing Keys
-        </a>
+          <a
+            className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
+            onClick={viewingKey}
+          >
+            Create Signing Keys
+          </a>
 
-        <Title title={'3. Verify Ownership'} />
-        <button
-          className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
-          onClick={handlePersonalSign}
-          style={{ filter: isConnected ? 'none' : 'blur(5px)' }}
-          disabled={!walletAddress || !isConnected || !eth_pubkey || isVerified}
-        >
-          Sign & Verify
-        </button>
+          <Title title={'3. Verify Ownership'} />
+          <button
+            className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
+            onClick={handlePersonalSign}
+            style={{ filter: isConnected ? 'none' : 'blur(5px)' }}
+            disabled={!walletAddress || !isConnected || !eth_pubkey || isVerified}
+          >
+            Sign & Verify
+          </button>
 
-        <Title title={'4. Claim Headstash'} />
-        <a
-          target="_blank"
-          className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
-          onClick={executeContract}
-        >
-          Claim Your Headstash, Privately
-        </a>
+          <Title title={'4. Claim Headstash'} />
+          <a
+            target="_blank"
+            className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
+            onClick={executeContract}
+          >
+            Claim Your Headstash, Privately
+          </a>
 
-        <Title title={'5. Choose Next Steps'} />
-        <ProofComponent isConnected={false} eth_pubkey={eth_pubkey} walletAddress={walletAddress} />
+          <Title title={'5. Choose Next Steps'} />
+          <ProofComponent isConnected={false} eth_pubkey={eth_pubkey} walletAddress={walletAddress} />
 
-        {/* <a
+          {/* <a
           href="https://tunnel.scrt.network"
           target="_blank"
           className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
@@ -329,7 +368,7 @@ function Headstash() {
           <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="ml-2" />
         </a> */}
 
-        {/* <p>
+          {/* <p>
           Use the{" "}
           <a
             href="https://ipfs.trivium.network/ipns/k51qzi5uqu5dhovcugri8aul3itkct8lvnodtnv2y3o1saotkjsa7ao1aq0dqa/"
@@ -353,6 +392,7 @@ function Headstash() {
             <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="ml-2" />
           </a>
         </p> */}
+        </div>
       </div>
     </>
   )
