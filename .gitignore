@@ -5,17 +5,21 @@ build
 
 # Dependency directories
 node_modules/
+caching-api/node_modules/
 jspm_packages/
 
 # Optional npm cache directory
 .npm
 
 # dotenv environment variable files
+caching-api/.env
+caching-api/.env.test
 .env
 .env.test
 
 # OS generated files
 .DS_Store*
+
 ehthumbs.db
 Icon?
 Thumbs.db
