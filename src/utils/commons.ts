@@ -263,3 +263,5 @@ export const appsJsonLdSchema = [
     creator: 'Secret Jupiter, Secret Saturn'
   }
 ]
+
+export const debugModeOverride: boolean = import.meta.env.VITE_DEBUG_MODE === 'true'

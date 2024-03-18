@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import {
   bridgeJsonLdSchema,
@@ -17,7 +16,6 @@ import { useSecretNetworkClientStore } from 'store/secretNetworkClient'
 import { useIsClient } from 'hooks/useIsClient'
 import Title from 'components/Title'
 import MetamaskConnectButton from 'components/Wallet/metamask-connect-button'
-import { proofData, headstashData } from 'lib/headstash'
 import toast from 'react-hot-toast'
 import Wallet from 'components/Wallet/Wallet'
 import Button from 'components/UI/Button/Button'
@@ -28,20 +26,28 @@ import {
   SecretNetworkClient,
   toUtf8
 } from 'secretjs'
-import ProofComponent from 'components/Headstash/proof'
+import { useHeadstash } from 'hooks/useHeadstash'
 
 function Headstash() {
   const { theme } = useContext(ThemeContext)
-  const [eth_pubkey, setEthPubkey] = useState('')
-  const [eth_sig] = useState('')
-  const [amount, setAmount] = useState('')
-  const formattedTerpAmount = `${amount.slice(0, 5)}.${amount.slice(5)} $TERP`
-  const formattedThiolAmount = `${amount.slice(0, 5)}.${amount.slice(5)} $THIOL`
-  const [proofs, setProofs] = useState<string[]>([''])
   const isClient = useIsClient()
   const [isVerified, setIsVerified] = useState(false)
-
+  const [isloading, setLoading] = useState(false)
   const { walletAddress, isConnected, secretNetworkClient, setViewingKey } = useSecretNetworkClientStore()
+
+  const [eth_pubkey, setEthPubkey] = useState('')
+  const [eth_sig] = useState('')
+  // Headstash allocation State
+  const [amount, setAmount] = useState('')
+  type FetchAmountState = 'loading' | 'no_proofs' | 'amounts_fetch' | 'not_fetched_yet'
+  const [amountState, setAmountState] = useState<FetchAmountState>('not_fetched_yet')
+
+  const formattedTerpAmount = `${amount.slice(0, 5)}.${amount.slice(5)} $TERP`
+  const formattedThiolAmount = `${amount.slice(0, 5)}.${amount.slice(5)} $THIOL`
+  // Proof State
+  const [proofs, setProofs] = useState<string[]>([''])
+  type FetchProofState = 'loading' | 'no_proofs' | 'proofs_fetched' | 'not_fetched_yet'
+  const [proofState, setProofsState] = useState<FetchProofState>('not_fetched_yet')
 
   const ibcSecretThiolContract = ''
   const ibcSecretTerpContract = ''
@@ -60,27 +66,87 @@ function Headstash() {
       // eth_pubkey null on wallet disconnect
       setEthPubkey('')
     }
-
     // Check if window.ethereum is available
-    if (isConnected) {
+    if (eth_pubkey != '') {
       // Listen for wallet disconnect events
       ;(window as any).ethereum.on('disconnect', handleWalletDisconnect)
     }
 
     // Cleanup the event listener when the component unmounts
     return () => {
-      if (isConnected) {
+      if (eth_pubkey != '') {
         ;(window as any).ethereum.off('disconnect', handleWalletDisconnect)
         // resets proofs
         // resetProofs();
       }
     }
-  }, [isConnected])
+  }, [])
 
   // set eth_pubkey
   const handleEthPubkey = (eth_pubkey: string) => {
     setEthPubkey(eth_pubkey)
   }
+  // handle headstash amount and proofs
+  // TODO: const { headstashAmount, headstashProofs, loading } = useHeadstash(eth_pubkey);
+
+  // fetch headstash data
+  useEffect(() => {
+    // Define a function to fetch the headstash amount
+    const fetchHeadstash = async () => {
+      try {
+        // Check if eth_pubkey exists
+        if (!eth_pubkey) {
+          toast.error('eth_pubkey is required')
+          console.error('eth_pubkey is required')
+          return
+        }
+
+        // Set loading state to true
+        setLoading(true)
+
+        const headstashAmountAPI = `http://localhost:3001/getAmount/${eth_pubkey}`
+        const headstashProofAPI = `http://localhost:3001/getProofs/${eth_pubkey}`
+
+        // GET request for amounts
+        const amounts = await fetch(headstashAmountAPI)
+
+        if (amounts.ok) {
+          const result = await amounts.json()
+          const { amount } = result
+          toast.success(`${result}`)
+          setAmount(amount)
+          setAmountState('amounts_fetch')
+        } else {
+          console.error('Faucet request failed with status:', amounts.status)
+        }
+        // console.log("Connected Accounts Allocation:", result);
+
+        // GET request for proofs
+        const proofsResponse = await fetch(headstashProofAPI)
+        if (proofsResponse.ok) {
+          const result = await proofsResponse.json()
+          console.log('Headstash Proofs:', result)
+          setProofs(result)
+          setProofsState('proofs_fetched')
+        } else {
+          console.error('Proofs request failed with status:', proofsResponse.status)
+        }
+
+        // Reset loading state
+        setLoading(false)
+      } catch (err) {
+        toast.error(`${err}`)
+        console.error(err)
+        setLoading(false)
+      }
+    }
+
+    // Call the fetchHeadstash function when eth_pubkey changes
+    if (eth_pubkey) {
+      fetchHeadstash()
+    }
+  }, [eth_pubkey])
+
   // handle eth_sig details
   const [ethSigDetails, setEthSigDetails] = useState(() => {
     try {
@@ -166,44 +232,6 @@ function Headstash() {
     setProofs([''])
   }
 
-  // // create secret network signing key
-  // // contract ref:
-  // const createSignKey = async () => {
-  //     try {
-  //         if (!walletAddress || !isConnected) {
-  //             console.error("Wallets not connected not connected");
-  //             return;
-  //         }
-  //         // define the msg to create viewing key
-  //         const executeMsg = {
-  //             set_viewing_key: {
-  //                 key: viewing_key,
-  //                 padding: randomPadding,
-  //             }
-
-  //         }
-  //         // create new msg
-  //         const msgExecute = new MsgExecuteContract({
-  //             sender: walletAddress,
-  //             contract_address: "", // secret testnet
-  //             // contract_address: "", // mainnet
-  //             code_hash: "",
-  //             msg: toUtf8(JSON.stringify(executeMsg)),
-  //             sent_funds: [],
-  //         });
-  //         const sim = await secretNetworkClient.tx.simulate([msgExecute])
-  //         const tx = await secretNetworkClient.tx.broadcast([msgExecute], {
-  //             gasLimit: Math.ceil(parseInt(sim.gas_info.gas_used) * 1.1),
-  //         });
-
-  //     } catch (error) {
-  //         toast.error(`create Viewing Key Error: ${error}`);
-  //         console.error("ViewingKey Error:", error);
-  //     }
-  // };
-
-  // claim headstash
-
   const executeContract = async () => {
     try {
       // ensure keplr is connected
@@ -229,7 +257,6 @@ function Headstash() {
       const msgExecute = new MsgExecuteContract({
         sender: walletAddress,
         contract_address: '', // secret testnet
-        // contract_address: "", // mainnet
         code_hash: '',
         msg: toUtf8(JSON.stringify(executeMsg)),
         sent_funds: []
@@ -247,47 +274,6 @@ function Headstash() {
       console.error('Execution Error:', error)
     }
   }
-
-  // fetch headstash data
-  // useEffect(() => {
-  //   console.log('Status:', isConnected)
-  //   console.log('Address:', walletAddress)
-  //   console.log('Metamask:', eth_pubkey)
-  //   console.log('EthSig:', eth_sig)
-  //   console.log('Proofs')
-
-  //   const fetchHeadstashData = async (eth_pubkey: string) => {
-  //     try {
-  //       if (isConnected && eth_pubkey) {
-  //         // Function to find an address in the array
-  //         const findAddress = (eth_pubkey: string) => {
-  //           return lodash.find(headstashData, { 'address': eth_pubkey });
-  //         };
-  //         const headstashVault = headstashData.find((data) => data.address === eth_pubkey)
-  //         const proofVault = proofData.find((data) => data.address === eth_pubkey)
-
-  //         if (headstashVault) {
-  //           setAmount(headstashVault.amount)
-  //         } else {
-  //           setAmount('Not Eligible')
-  //         }
-  //         if (proofVault) {
-  //           setProofs(proofVault.proof)
-  //           console.log(proofs)
-  //         } else {
-  //           setProofs(['No proofs were found'])
-  //           console.log(proofs)
-  //         }
-  //       }
-  //     } catch (error) {
-  //       setAmount('fetch if eligible error')
-  //       setProofs(['Error fetching data'])
-  //       console.error('Error fetching data', error)
-  //     }
-  //   }
-
-  //   void fetchHeadstashData(eth_pubkey)
-  // }, [isConnected, eth_pubkey, walletAddress])
 
   return (
     <>
@@ -354,44 +340,11 @@ function Headstash() {
           </a>
 
           <Title title={'5. Choose Next Steps'} />
-          <ProofComponent isConnected={false} eth_pubkey={eth_pubkey} walletAddress={walletAddress} />
-
-          {/* <a
-          href="https://tunnel.scrt.network"
-          target="_blank"
-          className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
-          onClick={() => {
-            trackMixPanelEvent('Clicked Secret Tunnel link (from Bridge page)')
-          }}
-        >
-          Go to Secret Tunnel
-          <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="ml-2" />
-        </a> */}
-
-          {/* <p>
-          Use the{" "}
-          <a
-            href="https://ipfs.trivium.network/ipns/k51qzi5uqu5dhovcugri8aul3itkct8lvnodtnv2y3o1saotkjsa7ao1aq0dqa/"
-            target="_blank"
-            className="pb-0.5 border-b border-neutral-400 dark:border-neutral-600 hover:text-black dark:hover:text-white hover:border-black dark:hover:border-white transition-colors"
-          >
-            Monero Bridge
-          </a>{" "}
-          to bridge your XMR from Monero to Secret Network.
-          <a
-            href="https://ipfs.trivium.network/ipns/k51qzi5uqu5dhovcugri8aul3itkct8lvnodtnv2y3o1saotkjsa7ao1aq0dqa/"
-            target="_blank"
-            className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
-            onClick={() => {
-              trackMixPanelEvent(
-                "Clicked Monero Bridge link (from Bridge page)"
-              );
-            }}
-          >
-            Go to Monero Bridge
-            <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="ml-2" />
-          </a>
-        </p> */}
+          <div>
+            <h1>Headstash Details</h1>
+            <p>Address: {eth_pubkey}</p>
+            <p>Amount: {amount}</p>
+          </div>
         </div>
       </div>
     </>
