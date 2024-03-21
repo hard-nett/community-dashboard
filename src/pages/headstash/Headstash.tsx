@@ -49,8 +49,9 @@ function Headstash() {
   type FetchProofState = 'loading' | 'no_proofs' | 'proofs_fetched' | 'not_fetched_yet'
   const [proofState, setProofsState] = useState<FetchProofState>('not_fetched_yet')
 
-  const ibcSecretThiolContract = ''
-  const ibcSecretTerpContract = ''
+  const ibcSecretThiolContract = 'secret1umh28jgcp0g9jy3qc29xk42kq92xjrcdfgvwdz'
+  const ibcSecretTerpContract = 'secret1c3lj7dr9r2pe83j3yx8jt5v800zs9sq7we6wrc'
+  const codeHash = 'c74bc4b0406507257ed033caa922272023ab013b0c74330efc16569528fa34fe'
 
   // temporary client for testing signing key, will migrate to use secretNetworkClient
   const txEncryptionSeed = EncryptionUtilsImpl.GenerateNewSeed()
@@ -214,7 +215,7 @@ function Headstash() {
         {
           sender: walletAddress,
           contract_address: ibcSecretTerpContract,
-          // code_hash: , // optional but way faster
+          code_hash: codeHash, // optional but way faster
           msg: handleMsg,
           sent_funds: [] // optional
         },
