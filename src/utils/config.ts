@@ -51,7 +51,7 @@ export const chains: { [chain_name: string]: Chain } = {
     withdraw_gas: 0,
     chain_id: 'pulsar-3',
     bech32_prefix: 'secret',
-    lcd: 'https://api.testnet.secretsaturn.net:443',
+    lcd: 'https://pulsar.api.trivium.network:1317',
     chain_image: 'img/assets/scrt.svg',
     explorer_account: 'https://testnet.ping.pub/secret/account/'
   },
