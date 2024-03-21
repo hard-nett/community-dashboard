@@ -141,7 +141,7 @@ const setWalletViewingKey = async (token: string) => {
     console.error('Wallet not present')
     return
   }
-  await window.wallet.suggestToken(SECRET_CHAIN_ID, token)
+  await window.wallet.suggestToken(SECRET_TESTNET_CHAIN_ID, token)
 }
 
 const getWalletViewingKey = async (token: string): Promise<Nullable<string>> => {
@@ -152,7 +152,7 @@ const getWalletViewingKey = async (token: string): Promise<Nullable<string>> => 
     return null
   }
   try {
-    return await window.wallet?.getSecret20ViewingKey(SECRET_CHAIN_ID, token)
+    return await window.wallet?.getSecret20ViewingKey(SECRET_TESTNET_CHAIN_ID, token)
   } catch (error) {
     if (debugMode || debugModeOverride) {
       console.debug('Error in getWalletViewingKey', error)

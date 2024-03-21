@@ -205,25 +205,19 @@ function Headstash() {
   }
 
   // TODO: get randomness from nois
-  const entropy = 'Another really random thing'
+  const entropy = 'eretskeretjableret'
 
   const viewingKey = async () => {
     try {
       let handleMsg = { create_viewing_key: { entropy: entropy } }
       console.log('Creating viewing key')
-      let tx = await secretNetworkClient.tx.compute.executeContract(
-        {
-          sender: walletAddress,
-          contract_address: ibcSecretTerpContract,
-          code_hash: codeHash, // optional but way faster
-          msg: handleMsg,
-          sent_funds: [] // optional
-        },
-        {
-          gasLimit: 100_000
-        }
-      )
-      console.log(tx)
+      const txExec = await secretNetworkClient.tx.snip20.createViewingKey({
+        sender: secretjs.address,
+        contract_address: ibcSecretTerpContract,
+        code_hash: codeHash,
+        msg: handleMsg
+      })
+      console.log(txExec)
     } catch (tx) {
       console.error(tx)
       toast.error(`${tx}`)
@@ -249,12 +243,11 @@ function Headstash() {
         claim: {
           amount: amount,
           eth_pubkey: eth_pubkey,
-          eth_sig: ethSigDetails ? ethSigDetails.signatureHash.slice(2) : '', // Removes '0x' prefix
+          eth_sig: ethSigDetails ? ethSigDetails.signatureHash.slice(2) : '', // this removes the '0x' prefix
           proof: proofs
         }
       }
-      // console.log("Execute Message:", executeMsg);
-      // secretjs tech
+
       const msgExecute = new MsgExecuteContract({
         sender: walletAddress,
         contract_address: '', // secret testnet
@@ -271,7 +264,7 @@ function Headstash() {
       console.log('Execution Result:', tx.transactionHash)
       toast.success(`[View Tx Hash](https://ping.pub/terp/tx/${tx.transactionHash})`)
     } catch (error) {
-      toast.error(`Claim Headstash: ${error}`)
+      toast.error(`Claim Headstash Error: ${error}`)
       console.error('Execution Error:', error)
     }
   }
@@ -280,7 +273,6 @@ function Headstash() {
     <>
       <Helmet>
         <title>Private Headstash</title>
-
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
@@ -302,7 +294,6 @@ function Headstash() {
       <div className="max-w-2xl mx-auto px-6 text-neutral-600 dark:text-neutral-400 leading-7 text-justify">
         {/* Title */}
         <Title title={'Private Headstash Airdrop'} />
-
         <Title title={'1. Connect Wallets'} />
         <center>
           <MetamaskConnectButton handleEthPubkey={handleEthPubkey} />
@@ -313,14 +304,12 @@ function Headstash() {
         {amount !== 'Not Eligible' ? formattedThiolAmount : ''}
         <div style={{ filter: isConnected && eth_pubkey ? 'none' : 'blur(5px)' }}>
           <Title title={'2. Create Signing Key'} />
-
           <a
             className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
             onClick={viewingKey}
           >
             Create Signing Keys
           </a>
-
           <Title title={'3. Verify Ownership'} />
           <button
             className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
@@ -330,7 +319,6 @@ function Headstash() {
           >
             Sign & Verify
           </button>
-
           <Title title={'4. Claim Headstash'} />
           <a
             target="_blank"
