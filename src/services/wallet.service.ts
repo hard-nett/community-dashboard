@@ -9,7 +9,7 @@ import {
   faucetURL,
   sleep
 } from 'utils/commons'
-import { Chain, SECRET_CHAIN_ID, SECRET_LCD, Token } from 'utils/config'
+import { Chain, SECRET_CHAIN_ID, SECRET_LCD, SECRET_TESTNET_CHAIN_ID, SECRET_TESTNET_LCD, Token } from 'utils/config'
 import { isMobile } from 'react-device-detect'
 import { scrtToken } from 'utils/tokens'
 import { WalletAPIType } from 'types/WalletAPIType'
@@ -88,8 +88,8 @@ const connectLeap = async (lcd: string, chainID: string) => {
 
 const connectWallet = async (
   walletAPIType: WalletAPIType = 'keplr',
-  lcd: string = SECRET_LCD,
-  chainID: string = SECRET_CHAIN_ID
+  lcd: string = SECRET_TESTNET_CHAIN_ID, // SECRET_LCD,
+  chainID: string = SECRET_TESTNET_CHAIN_ID // SECRET_CHAIN_ID
 ) => {
   let walletAddress: string
   let secretNetworkClient: SecretNetworkClient
@@ -260,7 +260,7 @@ const getBatchsTokenBalance = async (
       contractAddress: batchQueryContractAddress,
       codeHash: batchQueryCodeHash,
       queries: queries,
-      lcdEndpoint: SECRET_LCD
+      lcdEndpoint: SECRET_TESTNET_LCD // SECRET_LCD
     })
   } catch (error) {
     console.error('Error executing batch query: ', error)

@@ -5,7 +5,7 @@ import MiniTile from './components/MiniTile'
 import PriceVolumeTVL from './components/PriceVolTVLChart/PriceVolumeTVL'
 import QuadTile from './components/QuadTile'
 import SocialMedia from './components/SocialMedia'
-import { SECRET_LCD, SECRET_CHAIN_ID } from 'utils/config'
+import { SECRET_LCD, SECRET_CHAIN_ID, SECRET_TESTNET_CHAIN_ID, SECRET_TESTNET_LCD } from 'utils/config'
 import StakingChart from './components/StakingChart'
 import { formatNumber } from 'utils/commons'
 import { APIContext } from 'context/APIContext'
@@ -112,8 +112,10 @@ function Dashboard() {
   useEffect(() => {
     const queryData = async () => {
       const secretjsquery = new SecretNetworkClient({
-        url: SECRET_LCD,
-        chainId: SECRET_CHAIN_ID
+        // url: SECRET_LCD,
+        // chainId: SECRET_CHAIN_ID
+        url: SECRET_TESTNET_LCD,
+        chainId: SECRET_TESTNET_CHAIN_ID
       })
 
       secretjsquery?.query?.tendermint.getLatestBlock('')?.then((res1) => {

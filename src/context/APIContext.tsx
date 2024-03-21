@@ -2,7 +2,7 @@ import BigNumber from 'bignumber.js'
 import { createContext, useEffect, useRef, useState } from 'react'
 import { SecretNetworkClient } from 'secretjs'
 import { allTokens, dAppsURL, randomDelay, sleep, sortDAppsArray } from 'utils/commons'
-import { SECRET_LCD, SECRET_CHAIN_ID, chains } from 'utils/config'
+import { SECRET_LCD, SECRET_CHAIN_ID, chains, SECRET_TESTNET_LCD, SECRET_TESTNET_CHAIN_ID } from 'utils/config'
 
 const APIContext = createContext(null)
 
@@ -30,8 +30,10 @@ const APIContextProvider = ({ children }: any) => {
   useEffect(() => {
     const queryData = async () => {
       const secretjsquery = new SecretNetworkClient({
-        url: SECRET_LCD,
-        chainId: SECRET_CHAIN_ID
+        // url: SECRET_LCD,
+        // chainId: SECRET_CHAIN_ID
+        url: SECRET_TESTNET_LCD,
+        chainId: SECRET_TESTNET_CHAIN_ID
       })
 
       secretjsquery?.query?.bank

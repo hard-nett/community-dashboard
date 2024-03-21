@@ -8,7 +8,7 @@ import Tooltip from '@mui/material/Tooltip'
 import './Staking.scss'
 import NoScrtWarning from './components/NoScrtWarning'
 import ValidatorModal from './components/ValidatorModal'
-import { SECRET_LCD, SECRET_CHAIN_ID } from 'utils/config'
+import { SECRET_LCD, SECRET_CHAIN_ID, SECRET_TESTNET_CHAIN_ID, SECRET_TESTNET_LCD } from 'utils/config'
 import { SecretNetworkClient } from 'secretjs'
 import Select from 'react-select'
 import Title from '../../components/Title'
@@ -215,8 +215,10 @@ export const Staking = () => {
   useEffect(() => {
     const fetchValidators = async () => {
       const secretjsquery = new SecretNetworkClient({
-        url: SECRET_LCD,
-        chainId: SECRET_CHAIN_ID
+        url: SECRET_TESTNET_LCD,
+        chainId: SECRET_TESTNET_CHAIN_ID
+        // url: SECRET_LCD,
+        // chainId: SECRET_CHAIN_ID
       })
       const { validators } = await secretjsquery.query.staking.validators({
         status: '',

@@ -11,7 +11,7 @@ import { MessageDefinitions, balanceFormat } from './components/Messages'
 import { useSecretNetworkClientStore } from 'store/secretNetworkClient'
 import { Nullable } from 'types/Nullable'
 import { WalletService } from 'services/wallet.service'
-import { SECRET_LCD } from 'utils/config'
+import { SECRET_LCD, SECRET_TESTNET_LCD } from 'utils/config'
 import { useSearchParams } from 'react-router-dom'
 import { NotificationService } from 'services/notification.service'
 import Modal from 'components/UI/Modal/Modal'
@@ -24,7 +24,7 @@ export type TMessage = {
 
 function Powertools() {
   const [secretjs, setSecretjs] = useState<Nullable<SecretNetworkClient>>(null)
-  const [apiUrl, setApiUrl] = useState<string>(SECRET_LCD)
+  const [apiUrl, setApiUrl] = useState<string>(SECRET_TESTNET_LCD)
   const [apiStatus, setApiStatus] = useState<ApiStatus>('loading')
   const [denom, setDenom] = useState<string>('uscrt')
   const [chainId, setChainId] = useState<string>('')

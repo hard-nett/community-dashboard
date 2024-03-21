@@ -4,7 +4,7 @@ import { ReactNode, useContext, useEffect, useState } from 'react'
 import { APIContext } from 'context/APIContext'
 import { toUsdString, formatNumber } from 'utils/commons'
 import BigNumber from 'bignumber.js'
-import { SECRET_LCD, SECRET_CHAIN_ID } from 'utils/config'
+import { SECRET_LCD, SECRET_CHAIN_ID, SECRET_TESTNET_LCD, SECRET_TESTNET_CHAIN_ID } from 'utils/config'
 import CopyToClipboard from 'react-copy-to-clipboard'
 import { faCopy } from '@fortawesome/free-solid-svg-icons'
 import Tooltip from '@mui/material/Tooltip'
@@ -78,8 +78,10 @@ const ValidatorModal = (props: Props) => {
     const fetchValidatorSelfDelegations = async () => {
       const selfDelegatingAddr = validatorAddressToSelfDelegatorAddress(selectedValidator?.operator_address)
       const secretjsquery = new SecretNetworkClient({
-        url: SECRET_LCD,
-        chainId: SECRET_CHAIN_ID
+        url: SECRET_TESTNET_LCD,
+        chainId: SECRET_TESTNET_CHAIN_ID
+        // url: SECRET_LCD,
+        // chainId: SECRET_CHAIN_ID
       })
       const { delegation_response } = await secretjsquery.query.staking.delegation({
         delegator_addr: selfDelegatingAddr,

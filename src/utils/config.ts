@@ -42,6 +42,45 @@ export const chains: { [chain_name: string]: Chain } = {
     chain_image: 'img/assets/scrt.svg',
     explorer_account: 'https://www.mintscan.io/secret/account/'
   },
+  'Secret Network Testnet': {
+    chain_name: 'Secret Network Tesnet',
+    deposit_channel_id: '',
+    deposit_gas: 0,
+    deposit_gas_denom: 'uscrt',
+    withdraw_channel_id: '',
+    withdraw_gas: 0,
+    chain_id: 'pulsar-3',
+    bech32_prefix: 'secret',
+    lcd: 'https://api.testnet.secretsaturn.net:443',
+    chain_image: 'img/assets/scrt.svg',
+    explorer_account: 'https://testnet.ping.pub/secret/account/'
+  },
+  'Terp Network': {
+    chain_name: 'Terp Network Testnet',
+    deposit_channel_id: '',
+    deposit_gas: 150_000,
+    deposit_gas_denom: 'uthiolx',
+    withdraw_channel_id: '',
+    withdraw_gas: 30_000,
+    chain_id: 'morocco-1',
+    bech32_prefix: 'terp',
+    lcd: 'https://terp-testnet-rpc.itrocket.net:443',
+    chain_image: '/terp.png',
+    explorer_account: 'https://ping.pub'
+  },
+  'Terp Network Testnet': {
+    chain_name: 'Terp Network Testnet',
+    deposit_channel_id: '',
+    deposit_gas: 150_000,
+    deposit_gas_denom: 'uthiolx',
+    withdraw_channel_id: '',
+    withdraw_gas: 30_000,
+    chain_id: '90u-2',
+    bech32_prefix: 'terp',
+    lcd: 'https://terp-testnet-rpc.itrocket.net:443',
+    chain_image: '/terp.png',
+    explorer_account: 'https://ping.pub'
+  },
   Agoric: {
     chain_name: 'Agoric',
     deposit_channel_id: 'channel-10',
@@ -4448,3 +4487,10 @@ export const ICSTokens: Token[] = [
 
 export const SECRET_CHAIN_ID = chains['Secret Network'].chain_id
 export const SECRET_LCD = chains['Secret Network'].lcd
+export const SECRET_TESTNET_CHAIN_ID = chains['Secret Network'].chain_id
+export const SECRET_TESTNET_LCD = chains['Secret Network Testnet'].lcd
+
+export const TERPNETWORK_CHAIN_ID = chains['Terp Network'].chain_id
+export const TERPNETWORK_LCD = chains['Terp Network'].lcd
+export const TERPNETOWRK_TESTNET_CHAIN_ID = chains['Terp Network Testnet'].chain_id
+export const TERPNETWORK_TESTNET_LCD = chains['Terp Network Testnet'].lcd

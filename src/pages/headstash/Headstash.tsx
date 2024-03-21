@@ -57,7 +57,7 @@ function Headstash() {
   const secretjs = new SecretNetworkClient({
     url: 'https://api.pulsar.scrttestnet.com',
     walletAddress: walletAddress,
-    chainId: 'pulsar-2',
+    chainId: 'pulsar-3',
     encryptionSeed: txEncryptionSeed
   })
 
