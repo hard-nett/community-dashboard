@@ -1,13 +1,5 @@
 import { Helmet } from 'react-helmet-async'
-import {
-  bridgeJsonLdSchema,
-  bridgePageDescription,
-  bridgePageTitle,
-  formatNumber,
-  headstashPageTitle,
-  pageTitle,
-  randomPadding
-} from 'utils/commons'
+import { bridgeJsonLdSchema, bridgePageDescription, headstashPageTitle, randomPadding } from 'utils/commons'
 import mixpanel from 'mixpanel-browser'
 import { useEffect, useState, useContext } from 'react'
 import { trackMixPanelEvent } from 'utils/commons'
@@ -27,45 +19,50 @@ import {
   toUtf8
 } from 'secretjs'
 import { useHeadstash } from 'hooks/useHeadstash'
+import { Nullable } from 'types/Nullable'
+import { WalletService } from 'services/wallet.service'
+import { SECRET_TESTNET_LCD } from 'utils/config'
+import { ApiStatus } from 'types/ApiStatus'
 
 function Headstash() {
+  const [secretjs, setSecretjs] = useState<Nullable<SecretNetworkClient>>(null)
+  const [apiUrl, setApiUrl] = useState<string>(SECRET_TESTNET_LCD)
+  const [gasPrice, setGasPrice] = useState<string>('')
+  const [apiStatus, setApiStatus] = useState<ApiStatus>('loading')
   const { theme } = useContext(ThemeContext)
   const isClient = useIsClient()
   const [isVerified, setIsVerified] = useState(false)
   const [isloading, setLoading] = useState(false)
-  const { walletAddress, isConnected, secretNetworkClient, setViewingKey } = useSecretNetworkClientStore()
+  const { walletAddress, walletAPIType, isConnected, secretNetworkClient, setViewingKey } =
+    useSecretNetworkClientStore()
 
   const [eth_pubkey, setEthPubkey] = useState('')
   const [eth_sig] = useState('')
-  // Headstash allocation State
+  // airdrop amount state
   const [amount, setAmount] = useState('')
   type FetchAmountState = 'loading' | 'no_proofs' | 'amounts_fetch' | 'not_fetched_yet'
   const [amountState, setAmountState] = useState<FetchAmountState>('not_fetched_yet')
 
   const formattedTerpAmount = `${amount.slice(0, 5)}.${amount.slice(5)} $TERP`
   const formattedThiolAmount = `${amount.slice(0, 5)}.${amount.slice(5)} $THIOL`
-  // Proof State
+  // proof state
   const [proofs, setProofs] = useState<string[]>([''])
   type FetchProofState = 'loading' | 'no_proofs' | 'proofs_fetched' | 'not_fetched_yet'
   const [proofState, setProofsState] = useState<FetchProofState>('not_fetched_yet')
 
+  // scrt-20 contract definitions
   const ibcSecretThiolContract = 'secret1umh28jgcp0g9jy3qc29xk42kq92xjrcdfgvwdz'
   const ibcSecretTerpContract = 'secret1c3lj7dr9r2pe83j3yx8jt5v800zs9sq7we6wrc'
   const codeHash = 'c74bc4b0406507257ed033caa922272023ab013b0c74330efc16569528fa34fe'
 
   // temporary client for testing signing key, will migrate to use secretNetworkClient
   const txEncryptionSeed = EncryptionUtilsImpl.GenerateNewSeed()
-  const secretjs = new SecretNetworkClient({
-    url: 'https://api.pulsar.scrttestnet.com',
-    walletAddress: walletAddress,
-    chainId: 'pulsar-3',
-    encryptionSeed: txEncryptionSeed
-  })
 
   useEffect(() => {
     const handleWalletDisconnect = () => {
       // eth_pubkey null on wallet disconnect
       setEthPubkey('')
+      setAmount('')
     }
     // Check if window.ethereum is available
     if (eth_pubkey != '') {
@@ -73,11 +70,10 @@ function Headstash() {
       ;(window as any).ethereum.on('disconnect', handleWalletDisconnect)
     }
 
-    // Cleanup the event listener when the component unmounts
+    // clean event listener on unmount
     return () => {
       if (eth_pubkey != '') {
         ;(window as any).ethereum.off('disconnect', handleWalletDisconnect)
-        // resets proofs
         // resetProofs();
       }
     }
@@ -114,7 +110,6 @@ function Headstash() {
         if (amounts.ok) {
           const result = await amounts.json()
           const { amount } = result
-          toast.success(`${result}`)
           setAmount(amount)
           setAmountState('amounts_fetch')
         } else {
@@ -207,27 +202,80 @@ function Headstash() {
   // TODO: get randomness from nois
   const entropy = 'eretskeretjableret'
 
-  const viewingKey = async () => {
+  async function handleSendTx() {
     try {
+      const secretjsquery = new SecretNetworkClient({
+        url: apiUrl,
+        chainId: ''
+      })
+      const { block } = await secretjsquery.query.tendermint.getLatestBlock({})
+      let minimum_gas_price: string | undefined
+      try {
+        ;({ minimum_gas_price } = await secretjsquery.query.node.config({}))
+      } catch (error) {
+        // Bug on must chains - this endpoint isn't connected
+      }
+      const { params } = await secretjsquery.query.staking.params({})
+
+      // setDenom(params!.bond_denom!)
+
+      const newChainId = block?.header?.chain_id!
+
+      if (newChainId != 'secret-4' && newChainId != 'pulsar-3') {
+        throw Error('Chain-ID must be secret-4 or pulsar-3. You cannot use a different chain than Secret Network.')
+      }
+
+      // const newBlockHeight = balanceFormat(Number(block?.header?.height))
+
+      let newGasPrice: string | undefined
+      if (minimum_gas_price) {
+        newGasPrice = minimum_gas_price.replace(/0*([a-z]+)$/, '$1')
+      }
+      console.log(minimum_gas_price)
+
+      const blockTimeAgo = Math.floor((Date.now() - Date.parse(block?.header?.time as string)) / 1000)
+      const blockTimeAgoString = blockTimeAgo <= 0 ? 'now' : `${blockTimeAgo}s ago`
+
+      const { walletAddress, secretjs: importedSecretjs } = await WalletService.connectWallet(
+        walletAPIType,
+        apiUrl,
+        newChainId
+      )
+      // setPrefix(importedSecretjs.address.replace(/^([a-z]+)1.*$/, '$1'))
+      setSecretjs(importedSecretjs)
+      // setChainId(newChainId)
+      setApiStatus('online')
+      // setBlockHeight(newBlockHeight)
+      setGasPrice(newGasPrice)
+
       let handleMsg = { create_viewing_key: { entropy: entropy } }
       console.log('Creating viewing key')
-      const txExec = await secretNetworkClient.tx.snip20.createViewingKey({
+      const txExec = await secretjs.tx.snip20.createViewingKey({
         sender: secretjs.address,
         contract_address: ibcSecretTerpContract,
         code_hash: codeHash,
         msg: handleMsg
       })
       console.log(txExec)
-    } catch (tx) {
-      console.error(tx)
-      toast.error(`${tx}`)
+    } catch (error) {
+      let errorMessage: string
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else {
+        errorMessage = JSON.stringify(error)
+      }
+
+      setApiStatus('offline')
+      // setChainId('')
+      // setBlockHeight('')
+      setGasPrice('')
     }
   }
   const resetProofs = () => {
     setProofs([''])
   }
 
-  const executeContract = async () => {
+  const claimHeadstashMsg = async () => {
     try {
       // ensure keplr is connected
       if (!walletAddress || !isConnected) {
@@ -255,8 +303,8 @@ function Headstash() {
         msg: toUtf8(JSON.stringify(executeMsg)),
         sent_funds: []
       })
-      const sim = await secretNetworkClient.tx.simulate([msgExecute])
-      const tx = await secretNetworkClient.tx.broadcast([msgExecute], {
+      const sim = await secretjs.tx.simulate([msgExecute])
+      const tx = await secretjs.tx.broadcast([msgExecute], {
         gasLimit: Math.ceil(parseInt(sim.gas_info.gas_used) * 1.1)
       })
 
@@ -300,13 +348,17 @@ function Headstash() {
           <br />
           <Wallet />
         </center>
-        {amount !== 'Not Eligible' ? formattedTerpAmount : 'Not Eligible'}
-        {amount !== 'Not Eligible' ? formattedThiolAmount : ''}
+        <div>
+          <br />
+          <h1>Headstash Details</h1>
+          <p>Address: {eth_pubkey}</p>
+          <p>Amount: {amount}</p>
+        </div>
         <div style={{ filter: isConnected && eth_pubkey ? 'none' : 'blur(5px)' }}>
           <Title title={'2. Create Signing Key'} />
           <a
             className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
-            onClick={viewingKey}
+            onClick={handleSendTx}
           >
             Create Signing Keys
           </a>
@@ -323,17 +375,12 @@ function Headstash() {
           <a
             target="_blank"
             className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
-            onClick={executeContract}
+            onClick={claimHeadstashMsg}
           >
             Claim Your Headstash, Privately
           </a>
 
-          <Title title={'5. Choose Next Steps'} />
-          <div>
-            <h1>Headstash Details</h1>
-            <p>Address: {eth_pubkey}</p>
-            <p>Amount: {amount}</p>
-          </div>
+          {/* <Title title={'5. Choose Next Steps'} /> */}
         </div>
       </div>
     </>
