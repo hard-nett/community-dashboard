@@ -14,7 +14,7 @@ const MetamaskConnectButton: React.FC<MetamaskConnectButtonProps> = ({ handleEth
   const { disconnect } = useDisconnect()
 
   const connectWallet = async () => {
-    if (window.ethereum && status !== 'connected') {
+    if ((window.ethereum as any) && status !== 'connected') {
       const addressArray = await window.ethereum.request({
         method: 'eth_requestAccounts'
       })
@@ -34,7 +34,7 @@ const MetamaskConnectButton: React.FC<MetamaskConnectButtonProps> = ({ handleEth
       const walletResponse = await connectWallet()
       setEthPubkey(walletResponse.address)
     } catch (e) {
-      toast.error(`${e}`)
+      console.log(e)
     }
   }
 
