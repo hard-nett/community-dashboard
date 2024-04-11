@@ -5,7 +5,7 @@ import https from 'https';
 import { readFile } from 'fs/promises';
 import fs from 'fs';
 import toobusy from 'toobusy-js';
-import Redis from 'ioredis';
+import Redis, { Cluster } from 'ioredis';
 import Redlock from 'redlock';
 
 const PORT = process.env?.PORT ?? `3002`;
@@ -15,7 +15,7 @@ async function initDB() {
   return new Redis();
 }
 
-async function initMutex(db) {
+async function initMutex(db: Redis | Cluster) {
   const redlock = new Redlock(
     // You should have one client for each independent redis node
     // or cluster.
@@ -64,38 +64,21 @@ app.use(function (_req, res, next) {
 async function main() {
   const db = await initDB();
 
-  // Load data from the JSON file
+  // load json use to generate merkle tree root
   const rawAmountData = fs.readFileSync(
     `./${process.env.AMOUNT_JSON_PATH}`,
     'utf8'
   );
+  const amountData = JSON.parse(rawAmountData.toString());
+
+  // load json of merkle leaves
   const rawProofData = fs.readFileSync(
     `./${process.env.PROOF_JSON_PATH}`,
     'utf8'
   );
-  const amountData = JSON.parse(rawAmountData.toString());
   const proofData = JSON.parse(rawProofData.toString());
 
-  // Endpoint to get amount by address
-  app.get('/getAmount/:address', (req, res) => {
-    let { address } = req.params;
-
-    // Convert both the requested address and data addresses to lowercase
-    address = address.toLowerCase().trim();
-
-    // Find the entry with the matching address (converted to lowercase and trimmed)
-    const entry = amountData.find(
-      (item) => item.address.toLowerCase().trim() === address
-    );
-
-    if (!entry) {
-      return res.status(404).json({ error: 'Address not found' });
-    }
-
-    res.json({ amount: entry.amount });
-  });
-
-  // Endpoint to get proofs by address
+  // entry point
   app.get('/getProofs/:address', (req, res) => {
     let { address } = req.params;
 
@@ -104,14 +87,30 @@ async function main() {
 
     // Find the entry with the matching address (converted to lowercase and trimmed)
     const entry = proofData.find(
-      (item) => item.address.toLowerCase().trim() === address
+      (item: { address: string }) =>
+        item.address.toLowerCase().trim() === address
     );
 
     if (!entry) {
       return res.status(404).json({ error: 'Address not found' });
     }
 
-    res.json({ proof: entry.proof });
+    // Find the index of the address in the proofData array
+    const index = proofData.findIndex(
+      (item: { address: string }) =>
+        item.address.toLowerCase().trim() === address
+    );
+
+    // always should have index if address is found
+    if (!index) {
+      return res.json({
+        amount: amountData.amount,
+        index: 0,
+        proof: entry.proof
+      });
+    }
+
+    res.json({ amount: amountData.amount, index: index, proof: entry.proof });
   });
 
   if (process.env.EXECUTION == 'PRODUCTION') {

@@ -8,6 +8,7 @@ import { WalletAPIType } from 'types/WalletAPIType'
 import BigNumber from 'bignumber.js'
 import { WalletService } from 'services/wallet.service'
 import { IbcService } from 'services/ibc.service'
+import { Key } from '@keplr-wallet/types'
 
 export interface TokenBalances {
   balance: Nullable<BigNumber>
@@ -21,6 +22,7 @@ interface SecretNetworkClientState {
   init: () => void
   isConnected: boolean
   walletAddress: Nullable<string>
+  walletPubkey: Nullable<Key>
   setWalletAddress: (walletAddress: string) => void
   secretNetworkClient: Nullable<SecretNetworkClient>
   setSecretNetworkClient: (secretjs: Object) => void
@@ -62,7 +64,9 @@ export const useSecretNetworkClientStore = create<SecretNetworkClientState>()((s
   },
   isConnected: false,
   walletAddress: null,
+  walletPubkey: null,
   setWalletAddress: (walletAddress: string) => set({ walletAddress }),
+  setKey: (walletPubkey: Key) => set({ walletPubkey }),
   secretNetworkClient: null,
   setSecretNetworkClient: (secretNetworkClient: any) => set({ secretNetworkClient: secretNetworkClient }),
   walletAPIType: null,
@@ -85,6 +89,7 @@ export const useSecretNetworkClientStore = create<SecretNetworkClientState>()((s
   disconnectWallet: () => {
     set({
       walletAddress: null,
+      walletPubkey: null,
       secretNetworkClient: null,
       isConnected: false,
       scrtBalance: null,

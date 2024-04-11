@@ -40,6 +40,7 @@ const connectKeplr = async (lcd: string, chainID: string) => {
   const accounts = await keplrOfflineSigner.getAccounts()
 
   const walletAddress = accounts[0].address
+  const pubkey = window.keplr.getKey(chainID)
 
   const secretjs: SecretNetworkClient = new SecretNetworkClient({
     url: lcd,
@@ -51,7 +52,7 @@ const connectKeplr = async (lcd: string, chainID: string) => {
 
   window.wallet = window.keplr
 
-  return { walletAddress, secretjs }
+  return { walletAddress, pubkey, secretjs }
 }
 
 const connectLeap = async (lcd: string, chainID: string) => {
@@ -72,6 +73,8 @@ const connectLeap = async (lcd: string, chainID: string) => {
     const wallet = window.leap.getOfflineSignerOnlyAmino(chainID)
     const [{ address: walletAddress }] = await wallet.getAccounts()
 
+    const pubkey = window.leap.getKey(chainID)
+
     const secretjs: SecretNetworkClient = new SecretNetworkClient({
       url: lcd,
       chainId: chainID,
@@ -82,7 +85,7 @@ const connectLeap = async (lcd: string, chainID: string) => {
 
     window.wallet = window.leap
 
-    return { walletAddress, secretjs }
+    return { walletAddress, pubkey, secretjs }
   }
 }
 

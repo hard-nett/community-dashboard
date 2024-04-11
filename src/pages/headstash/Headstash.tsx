@@ -1,14 +1,14 @@
 import { Helmet } from 'react-helmet-async'
 import { bridgeJsonLdSchema, bridgePageDescription, headstashPageTitle, randomPadding } from 'utils/commons'
-import mixpanel from 'mixpanel-browser'
+import { useSecretNetworkClientStore } from 'store/secretNetworkClient'
 import { useEffect, useState, useContext } from 'react'
+import toast from 'react-hot-toast'
+import mixpanel from 'mixpanel-browser'
 import { trackMixPanelEvent } from 'utils/commons'
 import { ThemeContext } from 'context/ThemeContext'
-import { useSecretNetworkClientStore } from 'store/secretNetworkClient'
 import { useIsClient } from 'hooks/useIsClient'
 import Title from 'components/Title'
 import MetamaskConnectButton from 'components/Wallet/metamask-connect-button'
-import toast from 'react-hot-toast'
 import Wallet from 'components/Wallet/Wallet'
 import {
   EncryptionUtilsImpl,
@@ -22,6 +22,7 @@ import { Nullable } from 'types/Nullable'
 import { WalletService } from 'services/wallet.service'
 import { SECRET_TESTNET_CHAIN_ID, SECRET_TESTNET_LCD } from 'utils/config'
 import { ApiStatus } from 'types/ApiStatus'
+import { createAccountObject, createAddrProofMsg, sigForAddrProofMsg } from 'components/Headstash/Account'
 
 interface SigDetails {
   message: string
@@ -30,6 +31,17 @@ interface SigDetails {
   timestamp: string
 }
 
+interface AmountDetailsRes {
+  amount: string
+  index: any
+  proofs: string[]
+}
+
+const initialAmountDetails: AmountDetailsRes = {
+  amount: '',
+  index: null,
+  proofs: ['']
+}
 const initialSigDetails: SigDetails = {
   message: '',
   signatureHash: null,
@@ -38,37 +50,37 @@ const initialSigDetails: SigDetails = {
 }
 
 function Headstash() {
+  // network config state
   const [chainId, setChainId] = useState<string>('')
   const [secretjs, setSecretjs] = useState<Nullable<SecretNetworkClient>>(null)
   const [apiUrl, setApiUrl] = useState<string>(SECRET_TESTNET_LCD)
-  const [gasPrice, setGasPrice] = useState<string>('')
   const [apiStatus, setApiStatus] = useState<ApiStatus>('loading')
-  const { theme } = useContext(ThemeContext)
-  const isClient = useIsClient()
+  const [gasPrice, setGasPrice] = useState<string>('')
+  // app config state
+  // const { theme } = useContext(ThemeContext)
+  // const isClient = useIsClient()
+
   const [isVerified, setIsVerified] = useState(false)
   const [isloading, setLoading] = useState(false)
-  const { walletAddress, walletAPIType, isConnected, secretNetworkClient, setViewingKey } =
-    useSecretNetworkClientStore()
-
+  const { walletAddress, walletPubkey, walletAPIType, isConnected } = useSecretNetworkClientStore()
+  // eth pubkey state
   const [eth_pubkey, setEthPubkey] = useState('')
   const [ethSigDetails, setEthSigDetails] = useState<SigDetails>(initialSigDetails)
   // airdrop amount state
-  const [amount, setAmount] = useState('')
-  type FetchAmountState = 'loading' | 'no_proofs' | 'amounts_fetch' | 'not_fetched_yet'
+  const [amountDetails, setAmountDetails] = useState<AmountDetailsRes>(initialAmountDetails)
   const [amountState, setAmountState] = useState<FetchAmountState>('not_fetched_yet')
-
-  const formattedTerpAmount = `${amount.slice(0, 5)}.${amount.slice(5)} $TERP`
-  const formattedThiolAmount = `${amount.slice(0, 5)}.${amount.slice(5)} $THIOL`
+  type FetchAmountState = 'loading' | 'no_proofs' | 'amounts_fetch' | 'not_fetched_yet'
   // proof state
   const [proofs, setProofs] = useState<string[]>([''])
+  const [proofIndex, setProofIndex] = useState<number>()
   type FetchProofState = 'loading' | 'no_proofs' | 'proofs_fetched' | 'not_fetched_yet'
   const [proofState, setProofsState] = useState<FetchProofState>('not_fetched_yet')
 
   // scrt-20 contract definitions
   const ibcSecretThiolContract = 'secret1umh28jgcp0g9jy3qc29xk42kq92xjrcdfgvwdz'
   const ibcSecretTerpContract = 'secret1c3lj7dr9r2pe83j3yx8jt5v800zs9sq7we6wrc'
-  const codeHash = 'c74bc4b0406507257ed033caa922272023ab013b0c74330efc16569528fa34fe'
-  const headstashContract = ''
+  const codeHash = 'f494eda77c7816c4882d0dfde8bbd35b87975e427ea74315ed96c051d5674f82'
+  const headstashContract = 'secret1ykf6ysxy25qddd62c4yjyw0wn60uxtvvrm7xjn'
 
   // temporary client for testing signing key, will migrate to use secretNetworkClient
   const txEncryptionSeed = EncryptionUtilsImpl.GenerateNewSeed()
@@ -76,9 +88,12 @@ function Headstash() {
   useEffect(() => {
     const handleWalletDisconnect = () => {
       setEthPubkey('')
-      handleAmount('')
+      handleHsDetails({
+        amount: '',
+        index: null,
+        proofs: []
+      })
       setEthPubkey('')
-      console.log(proofState)
     }
     // Check if window.ethereum is available
     if (eth_pubkey != '') {
@@ -99,9 +114,10 @@ function Headstash() {
   const handleEthPubkey = (eth_pubkey: string) => {
     setEthPubkey(eth_pubkey)
   }
-  const handleAmount = (amount: string) => {
-    setAmount(amount)
-    setAmountState('not_fetched_yet')
+  // set headstash detials
+  const handleHsDetails = (amountDetails: AmountDetailsRes) => {
+    setAmountDetails(amountDetails)
+    setAmountState('amounts_fetch')
   }
 
   // fetch headstash data
@@ -118,33 +134,23 @@ function Headstash() {
 
         // Set loading state to true
         setLoading(true)
-
-        const headstashAmountAPI = `http://localhost:3001/getAmount/${eth_pubkey}`
-        const headstashProofAPI = `http://localhost:3001/getProofs/${eth_pubkey}`
+        const headstashDetailsAPI = `http://localhost:3001/getHeadstash/${eth_pubkey}`
 
         // GET request for amounts
-        const amounts = await fetch(headstashAmountAPI)
-
+        const amounts = await fetch(headstashDetailsAPI)
         if (amounts.ok) {
           const result = await amounts.json()
-          const { amount } = result
+
+          handleHsDetails(result)
+          setProofs(result.proof)
+          setProofIndex(result.index)
           setAmountState('amounts_fetch')
-          setAmount(amount)
+          setProofsState('proofs_fetched')
+          console.log('headstash detials:', result)
         } else {
           console.error('cannot get headstash amounts:', amounts.status)
         }
-        // GET request for proofs
-        const proofsResponse = await fetch(headstashProofAPI)
-        if (proofsResponse.ok) {
-          const result = await proofsResponse.json()
-          console.log('Headstash Proofs:', result)
-          setProofs(result)
-          setProofsState('proofs_fetched')
-        } else {
-          console.error('Proofs request failed with status:', proofsResponse.status)
-        }
 
-        // Reset loading state
         setLoading(false)
       } catch (err) {
         toast.error(`${err}`)
@@ -188,6 +194,7 @@ function Headstash() {
         }
         setEthSigDetails(sig)
         setIsVerified(true)
+        console.log(sig)
       } else {
         toast.error('Error Updating ethSig.')
       }
@@ -207,63 +214,72 @@ function Headstash() {
 
   async function createPrivateAccountMsg() {
     try {
-      const secretjsquery = new SecretNetworkClient({
-        url: apiUrl,
-        chainId: ''
-      })
-      const { block } = await secretjsquery.query.tendermint.getLatestBlock({})
-      let minimum_gas_price: string | undefined
-      try {
-        ;({ minimum_gas_price } = await secretjsquery.query.node.config({}))
-      } catch (error) {}
+      // const secretjsquery = new SecretNetworkClient({
+      //   url: apiUrl,
+      //   chainId: ''
+      // })
+      // const { block } = await secretjsquery.query.tendermint.getLatestBlock({})
+      // let minimum_gas_price: string | undefined
+      // try {
+      //   ; ({ minimum_gas_price } = await secretjsquery.query.node.config({}))
+      // } catch (error) { }
 
-      const newChainId = block?.header?.chain_id!
+      // const newChainId = block?.header?.chain_id!
 
-      let newGasPrice: string | undefined
-      if (minimum_gas_price) {
-        newGasPrice = minimum_gas_price.replace(/0*([a-z]+)$/, '$1')
-      }
-      console.log(minimum_gas_price)
+      // let newGasPrice: string | undefined
+      // if (minimum_gas_price) {
+      //   newGasPrice = minimum_gas_price.replace(/0*([a-z]+)$/, '$1')
+      // }
+      // console.log(minimum_gas_price)
 
-      const { walletAddress, secretjs: importedSecretjs } = await WalletService.connectWallet(
+      const { secretjs: importedSecretjs } = await WalletService.connectWallet(
         walletAPIType,
         apiUrl,
-        newChainId
+        SECRET_TESTNET_CHAIN_ID
       )
+      setSecretjs(importedSecretjs)
+      setChainId(SECRET_TESTNET_CHAIN_ID)
+      setApiStatus('online')
+      setGasPrice('0.1')
 
-      let handleMsg = {
-        account: {
-          addresses: [
-            {
-              params: {
-                coins: [{}],
-                contract: '',
-                eth_pubkey: eth_pubkey,
-                execute_msg: {},
-                sender: ''
-              },
-              signature: {
-                pub_key: {},
-                signature: ''
-              }
-            }
-          ],
-          eth_pubkey: eth_pubkey
-        }
+      if (ethSigDetails.signatureHash != '' && proofState == 'proofs_fetched') {
+        const permitSignature = sigForAddrProofMsg()
+        const memo = createAddrProofMsg(
+          walletAddress,
+          amountDetails.amount,
+          headstashContract,
+          amountDetails.index,
+          entropy
+        )
+        // Defines the msg object for in-state accounts
+        const account = createAccountObject(
+          headstashContract,
+          walletAddress,
+          walletPubkey,
+          eth_pubkey,
+          ethSigDetails.signatureHash,
+          proofs,
+          memo,
+          permitSignature
+        )
+        // console.log(account)
+        const msgExecute = new MsgExecuteContract({
+          sender: walletAddress,
+          contract_address: headstashContract,
+          code_hash: codeHash,
+          msg: toUtf8(JSON.stringify(account)),
+          sent_funds: []
+        })
+        // console.log(msgExecute)
+        // const sim = await secretjs.tx.simulate([msgExecute])
+        const tx = await secretjs.tx.broadcast([msgExecute], {
+          gasLimit: Math.ceil(parseInt('2000000') * 2),
+          gasPriceInFeeDenom: parseInt('0.1')
+        })
+        //   assertIsDeliverTxSuccess(tx);
+        console.log('Execution Result:', tx.transactionHash)
+        toast.success(`[View Tx Hash](https://ping.pub/terp/tx/${tx.transactionHash})`)
       }
-
-      const msgExecute = new MsgExecuteContract({
-        sender: walletAddress,
-        contract_address: '', // secret testnet
-        code_hash: '',
-        msg: toUtf8(JSON.stringify(handleMsg)),
-        sent_funds: []
-      })
-      const sim = await secretjs.tx.simulate([msgExecute])
-      const tx = await secretjs.tx.broadcast([msgExecute], {
-        gasLimit: Math.ceil(parseInt(sim.gas_info.gas_used) * 2),
-        gasPriceInFeeDenom: parseInt(minimum_gas_price)
-      })
     } catch (error) {
       let errorMessage: string
       if (error instanceof Error) {
@@ -326,14 +342,13 @@ function Headstash() {
         console.error('Wallets not connected not connected')
         return
       }
-      if (!amount) {
+      if (amountDetails.amount == '') {
         toast.error('Invalid amount value')
-        console.error("Invalid 'amount' value:", amount)
         return
       }
       const executeMsg = {
         claim: {
-          amount: amount,
+          amount: amountDetails.amount,
           eth_pubkey: eth_pubkey,
           eth_sig: ethSigDetails ? ethSigDetails.signatureHash.slice(2) : '', // this removes the '0x' prefix
           proof: proofs
@@ -396,7 +411,7 @@ function Headstash() {
           <br />
           <h1>Headstash Details</h1>
           <p>Address: {eth_pubkey}</p>
-          {eth_pubkey !== '' && <p>Amount: {amount}</p>}
+          {eth_pubkey !== '' && <p>Amount: {amountDetails.amount}</p>}
         </div>
         <div style={{ filter: isConnected && eth_pubkey ? 'none' : 'blur(5px)' }}>
           <Title title={'2. Create Signing Key'} />
