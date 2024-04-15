@@ -103,10 +103,4 @@ function createAccountObject(
   return accountObject
 }
 
-// TODO: generate signature for connected wallet
-function sigForAddrProofMsg() {
-  const sig = ''
-  return sig
-}
-
-export { createAccountObject, createAddrProofMsg, sigForAddrProofMsg }
+export { createAccountObject, createAddrProofMsg }
