@@ -226,7 +226,8 @@ function Wallet() {
           {isMenuVisible && <ContextMenu />}
           <div
             className="w-full sm:w-auto rounded-lg px-4 py-3 bg-white dark:bg-neutral-700 hover:dark:bg-neutral-600 select-none cursor-pointer transition-colors"
-            onMouseOver={() => setIsMenuVisible(true)}
+            // onMouseOver={() => setIsMenuVisible(true)}
+            onClick={() => setIsMenuVisible(true)}
             ref={keplrRef}
           >
             <div className="flex items-center font-semibold text-sm">

@@ -22,7 +22,17 @@ import { Nullable } from 'types/Nullable'
 import { WalletService } from 'services/wallet.service'
 import { SECRET_TESTNET_CHAIN_ID, SECRET_TESTNET_LCD } from 'utils/config'
 import { ApiStatus } from 'types/ApiStatus'
-import { createAccountObject, createAddrProofMsg } from 'components/Headstash/Account'
+import { createAccountObject } from 'components/Headstash/Account'
+import {
+  Carousel,
+  CarouselApi,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious
+} from 'components/UI/carousel'
+import { Progress } from 'components/UI/progress'
+import { convertMicroDenomToDenomWithDecimals } from 'utils/tokens'
 
 interface SigDetails {
   message: string
@@ -36,14 +46,6 @@ interface AmountDetailsRes {
   index: any
   proofs: string[]
 }
-interface AddrProofMsg {
-  pub_key: {
-    type: string
-    value: string
-  }
-  signature: string
-}
-
 const initialAmountDetails: AmountDetailsRes = {
   amount: '',
   index: null,
@@ -54,13 +56,6 @@ const initialSigDetails: SigDetails = {
   signatureHash: null,
   address: '',
   timestamp: ''
-}
-const initialAddrProofMsg: AddrProofMsg = {
-  pub_key: {
-    type: 'tendermint/PubKeySecp256k1',
-    value: ''
-  },
-  signature: ''
 }
 
 function Headstash() {
@@ -83,23 +78,18 @@ function Headstash() {
   // airdrop amount state
   const [amountDetails, setAmountDetails] = useState<AmountDetailsRes>(initialAmountDetails)
   const [amountState, setAmountState] = useState<FetchAmountState>('not_fetched_yet')
-  type FetchAmountState = 'loading' | 'no_proofs' | 'amounts_fetch' | 'not_fetched_yet'
-  // proof state
-  const [proofs, setProofs] = useState<string[]>([''])
-  const [proofIndex, setProofIndex] = useState<number>()
-  type FetchProofState = 'loading' | 'no_proofs' | 'proofs_fetched' | 'not_fetched_yet'
-  const [proofState, setProofsState] = useState<FetchProofState>('not_fetched_yet')
-  // AddrProofMsg state
-  const [addrProofMsg, setAddrProofMsg] = useState<AddrProofMsg>(initialAddrProofMsg)
+  type FetchAmountState = 'loading' | 'no_allocation' | 'amounts_fetched' | 'not_fetched_yet'
 
   // scrt-20 contract definitions
   const ibcSecretThiolContract = 'secret1umh28jgcp0g9jy3qc29xk42kq92xjrcdfgvwdz'
   const ibcSecretTerpContract = 'secret1c3lj7dr9r2pe83j3yx8jt5v800zs9sq7we6wrc'
-  const codeHash = 'f494eda77c7816c4882d0dfde8bbd35b87975e427ea74315ed96c051d5674f82'
-  const headstashContract = 'secret1ykf6ysxy25qddd62c4yjyw0wn60uxtvvrm7xjn'
+  const codeHash = 'e401bf5f5797ebc2fc75a60cefb7e8ebf6a005a5a3af540a47221dc3c1dabe6f'
+  const headstashContract = 'secret1le5q4htk5c2fs627xzxclfcdts63wwvyp8nj4e'
 
   // temporary client for testing signing key, will migrate to use secretNetworkClient
   const txEncryptionSeed = EncryptionUtilsImpl.GenerateNewSeed()
+
+  const [api, setApi] = useState<CarouselApi>()
 
   useEffect(() => {
     const handleWalletDisconnect = () => {
@@ -110,8 +100,8 @@ function Headstash() {
         proofs: []
       })
       setEthPubkey('')
-      setProofsState('not_fetched_yet')
-      resetProofs()
+      // setProofsState('not_fetched_yet')
+      // resetProofs()
     }
     // Check if window.ethereum is available
     if (eth_pubkey != '') {
@@ -135,7 +125,7 @@ function Headstash() {
   // set headstash detials
   const handleHsDetails = (amountDetails: AmountDetailsRes) => {
     setAmountDetails(amountDetails)
-    setAmountState('amounts_fetch')
+    setAmountState('amounts_fetched')
   }
 
   // fetch headstash data
@@ -160,10 +150,7 @@ function Headstash() {
           const result = await amounts.json()
 
           handleHsDetails(result)
-          setProofs(result.proof)
-          setProofIndex(result.index)
-          setAmountState('amounts_fetch')
-          setProofsState('proofs_fetched')
+          setAmountState('amounts_fetched')
           console.log('headstash detials:', result)
         } else {
           console.error('cannot get headstash amounts:', amounts.status)
@@ -230,7 +217,7 @@ function Headstash() {
   // TODO: get randomness from nois
   const entropy = 'eretskeretjableret'
 
-  async function createPrivateAccountMsg() {
+  async function claimHeadstashMsg() {
     try {
       // const secretjsquery = new SecretNetworkClient({
       //   url: apiUrl,
@@ -260,31 +247,15 @@ function Headstash() {
       setApiStatus('online')
       setGasPrice('0.1')
 
-      if (ethSigDetails.signatureHash != '' && proofState == 'proofs_fetched') {
-        const memo = createAddrProofMsg(
-          walletAddress,
-          amountDetails.amount,
-          headstashContract,
-          amountDetails.index,
-          entropy
-        )
-        // Defines the msg object for in-state accounts
-        const account = createAccountObject(
-          headstashContract,
-          walletAddress,
-          walletPubkey,
-          eth_pubkey,
-          ethSigDetails.signatureHash,
-          proofs,
-          memo,
-          addrProofMsg.signature
-        )
+      if (ethSigDetails.signatureHash != '' && amountState == 'amounts_fetched') {
+        const claim = createAccountObject(eth_pubkey, ethSigDetails.signatureHash)
         // console.log(account)
+
         const msgExecute = new MsgExecuteContract({
           sender: walletAddress,
           contract_address: headstashContract,
           code_hash: codeHash,
-          msg: toUtf8(JSON.stringify(account)),
+          msg: toUtf8(JSON.stringify(claim)),
           sent_funds: []
         })
         // console.log(msgExecute)
@@ -306,43 +277,6 @@ function Headstash() {
         toast.error(errorMessage)
       }
     }
-  }
-
-  const createPermitSignature = async () => {
-    setChainId(SECRET_TESTNET_CHAIN_ID)
-
-    const { signature } = await window.keplr.signAmino(
-      chainId,
-      walletAddress,
-      {
-        chain_id: chainId,
-        account_number: '0', // Must be 0
-        sequence: '0', // Must be 0
-        fee: {
-          amount: [{ denom: 'uscrt', amount: '0' }], // Must be 0 uscrt
-          gas: '1' // Must be 1
-        },
-        msgs: [
-          {
-            type: 'signature_proof',
-            value: {
-              coins: [],
-              contract: headstashContract,
-              execute_msg: {},
-              sender: walletAddress
-            }
-          }
-        ],
-        memo: '' // Must be empty
-      },
-      {
-        preferNoSetFee: true, // Fee must be 0, so hide it from the user
-        preferNoSetMemo: true // Memo must be empty, so hide it from the user
-      }
-    )
-
-    setAddrProofMsg(signature)
-    console.log(signature)
   }
 
   async function handleCreateViewingKey() {
@@ -385,53 +319,6 @@ function Headstash() {
       setGasPrice('')
     }
   }
-  const resetProofs = () => {
-    setProofs([''])
-  }
-
-  const claimHeadstashMsg = async () => {
-    try {
-      // ensure keplr is connected
-      if (!walletAddress || !isConnected) {
-        console.error('Wallets not connected not connected')
-        return
-      }
-      if (amountDetails.amount == '') {
-        toast.error('Invalid amount value')
-        return
-      }
-      // define the msg
-      const executeMsg = {
-        claim: {
-          amount: amountDetails.amount,
-          eth_pubkey: eth_pubkey,
-          eth_sig: ethSigDetails ? ethSigDetails.signatureHash.slice(2) : '', // this removes the '0x' prefix
-          proof: proofs
-        }
-      }
-      // create the msg object for secretjs
-      const msgExecute = new MsgExecuteContract({
-        sender: walletAddress,
-        contract_address: '', // secret testnet
-        code_hash: '',
-        msg: toUtf8(JSON.stringify(executeMsg)),
-        sent_funds: []
-      })
-      // simulate gas prices
-      const sim = await secretjs.tx.simulate([msgExecute])
-      // sign & broadcast tx
-      const tx = await secretjs.tx.broadcast([msgExecute], {
-        gasLimit: Math.ceil(parseInt(sim.gas_info.gas_used) * 1.1)
-      })
-
-      //   assertIsDeliverTxSuccess(tx);
-      console.log('Execution Result:', tx.transactionHash)
-      toast.success(`[View Tx Hash](https://ping.pub/terp/tx/${tx.transactionHash})`)
-    } catch (error) {
-      toast.error(`Claim Headstash Error: ${error}`)
-      console.error('Execution Error:', error)
-    }
-  }
 
   return (
     <>
@@ -439,16 +326,13 @@ function Headstash() {
         <title>Private Headstash</title>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
         <meta name="title" content={headstashPageTitle} />
         <meta name="application-name" content={headstashPageTitle} />
         <meta name="description" content={bridgePageDescription} />
         <meta name="robots" content="index,follow" />
-
         <meta property="og:title" content={headstashPageTitle} />
         <meta property="og:description" content={bridgePageDescription} />
         {/* <meta property="og:image" content="Image URL Here"/> */}
-
         <meta name="twitter:title" content={headstashPageTitle} />
         <meta name="twitter:description" content={bridgePageDescription} />
         {/* <meta name="twitter:image" content="Image URL Here"/> */}
@@ -458,95 +342,80 @@ function Headstash() {
       <div className="max-w-2xl mx-auto px-6 text-neutral-600 dark:text-neutral-400 leading-7 text-justify">
         {/* Title */}
         <Title title={'Private Headstash Airdrop'} />
-        <Title title={'1. Connect Wallets'} />
-        <center>
-          <MetamaskConnectButton handleEthPubkey={handleEthPubkey} />
-          <br />
-          <Wallet />
-        </center>
-        <div>
-          <br />
-          <h1>Headstash Details</h1>
-          <p>Address: {eth_pubkey}</p>
-          {eth_pubkey !== '' && <p>Amount: {amountDetails.amount}</p>}
-          <div>
-            <p>
-              Proofs:{' '}
-              {amountDetails.proofs && proofState !== 'not_fetched_yet' ? (
-                <span style={{ color: 'green' }}>✓</span>
-              ) : (
-                <span style={{ color: 'red' }}>x</span>
-              )}
-            </p>
+        <Carousel setApi={setApi}>
+          <CarouselContent>
+            <CarouselItem className="basis">
+              <Title title={'1. Connect Wallets'} />
+              <center>
+                <MetamaskConnectButton handleEthPubkey={handleEthPubkey} />
+                <br />
+                <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">Cosmos Wallet</div>
+                <Wallet />
+              </center>
+            </CarouselItem>
+            <CarouselItem className="basis">
+              <Title title={'2. Verify Metamask Ownership'} />
+              <center>
+                <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
+                  Request an offline signature from Metamask of your public cosmos wallet address. This signature does
+                  not require any gas payments, and verifies only you can claim your private headstash.
+                </div>
+                <button
+                  className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
+                  onClick={handleEthSig}
+                  style={{ filter: eth_pubkey ? 'none' : 'blur(5px)' }}
+                  disabled={!walletAddress || !isConnected || !eth_pubkey || isVerified}
+                >
+                  Sign & Verify
+                </button>
+              </center>
+            </CarouselItem>
+            <CarouselItem>
+              {' '}
+              <Title title={'3. Claim Headstash'} />
+              <center>
+                <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
+                  Claims your headstash privately. This requires your wallet to have SCRT tokens, to cover on-chain gas
+                  fees.
+                </div>
+                <button
+                  className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
+                  onClick={claimHeadstashMsg}
+                  style={{ filter: ethSigDetails.signatureHash ? 'none' : 'blur(5px)' }}
+                  disabled={!walletAddress || !isConnected || !eth_pubkey || !ethSigDetails.signatureHash}
+                >
+                  Claim Headstash Airdrop
+                </button>
+              </center>
+            </CarouselItem>
+          </CarouselContent>
+          <CarouselPrevious />
+          <CarouselNext />
+        </Carousel>
+        <br />
+        <div className="rounded-xl bg-white border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 h-full flex items-center px-4 py-2">
+          <div className="flex-1">
+            <div className="text-center inline-block">
+              Headstash Details
+              <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5"> Address:</div>
+              <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5"> Amount:</div>
+              <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
+                Signed:{' '}
+                {ethSigDetails && ethSigDetails !== initialSigDetails ? (
+                  <span style={{ color: 'green' }}>✓</span>
+                ) : (
+                  <span style={{ color: 'red' }}>x</span>
+                )}
+              </div>
+              <div className="text-xl"></div>
+            </div>
           </div>
-          <div>
-            <p>
-              Permit Signature:{' '}
-              {addrProofMsg && addrProofMsg.signature !== '' ? (
-                <span style={{ color: 'green' }}>✓</span>
-              ) : (
-                <span style={{ color: 'red' }}>x</span>
-              )}
-            </p>
+          <div className="flex-1 text-right">
+            {eth_pubkey}
+            {eth_pubkey !== '' && <p> {convertMicroDenomToDenomWithDecimals(amountDetails.amount, 6)}</p>}
           </div>
-          <div>
-            <p>
-              Eth Signature :{' '}
-              {ethSigDetails && ethSigDetails !== initialSigDetails ? (
-                <span style={{ color: 'green' }}>✓</span>
-              ) : (
-                <span style={{ color: 'red' }}>x</span>
-              )}
-            </p>
-          </div>
-
-          {/* {ethSigDetails !== null && <p>eth_sig: {ethSigDetails.signatureHash}</p>} */}
         </div>
-        <div>
-          <Title title={'2. Create Permit Signature'} />
-          <button
-            className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
-            onClick={createPermitSignature}
-            // style={{ filter: isConnected && eth_pubkey ? 'none' : 'blur(5px)' }}
-            // disabled={!walletAddress || !isConnected || !eth_pubkey || isVerified}
-          >
-            Create Signing Keys
-          </button>
-          {/* <Title title={'2. Create Signing Key'} />
-          <button
-            className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
-            onClick={handleCreateViewingKey}
-            style={{ filter: isConnected && eth_pubkey ? 'none' : 'blur(5px)' }}
-            disabled={!walletAddress || !isConnected || !eth_pubkey || isVerified}
-          >
-            Create Signing Keys
-          </button> */}
-          <Title title={'3. Verify Metamask Ownership'} />
-          <button
-            className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
-            onClick={handleEthSig}
-            style={{ filter: eth_pubkey ? 'none' : 'blur(5px)' }}
-            disabled={!walletAddress || !isConnected || !eth_pubkey || isVerified}
-          >
-            Sign & Verify
-          </button>
-          <Title title={'4. Create Private Account'} />
-          <button
-            className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
-            onClick={createPrivateAccountMsg}
-          >
-            Create Private Account
-          </button>
-          <Title title={'5. Claim Headstash'} />
-          <button
-            className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
-            onClick={claimHeadstashMsg}
-          >
-            Claim Your Headstash, Privately
-          </button>
-
-          {/* <Title title={'5. Choose Next Steps'} /> */}
-        </div>
+        <div>{/* {ethSigDetails !== null && <p>eth_sig: {ethSigDetails.signatureHash}</p>} */}</div>
       </div>
     </>
   )
