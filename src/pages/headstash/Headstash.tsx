@@ -241,7 +241,7 @@ function Headstash() {
   // TODO: get randomness from nois
   const entropy = 'eretskeretjableret'
 
-  async function claimHeadstashMsg() {
+  const claimHeadstashMsg = async () => {
     try {
       const { secretjs: importedSecretjs } = await WalletService.connectWallet(
         walletAPIType,
