@@ -3,8 +3,6 @@ import { bridgeJsonLdSchema, bridgePageDescription, headstashPageTitle, randomPa
 import { useSecretNetworkClientStore } from 'store/secretNetworkClient'
 import { useEffect, useState, useContext } from 'react'
 import toast from 'react-hot-toast'
-import mixpanel from 'mixpanel-browser'
-import { trackMixPanelEvent } from 'utils/commons'
 import { ThemeContext } from 'context/ThemeContext'
 import { useIsClient } from 'hooks/useIsClient'
 import Title from 'components/Title'
@@ -17,11 +15,9 @@ import {
   SecretNetworkClient,
   toUtf8
 } from 'secretjs'
-import { useHeadstash } from 'hooks/useHeadstash'
 import { Nullable } from 'types/Nullable'
 import { WalletService } from 'services/wallet.service'
 import { SECRET_TESTNET_CHAIN_ID, SECRET_TESTNET_LCD } from 'utils/config'
-import { ApiStatus } from 'types/ApiStatus'
 import { createAccountObject } from 'components/Headstash/Account'
 import {
   Carousel,
@@ -31,7 +27,6 @@ import {
   CarouselNext,
   CarouselPrevious
 } from 'components/UI/carousel'
-import { Progress } from 'components/UI/progress'
 import { convertMicroDenomToDenomWithDecimals } from 'utils/tokens'
 
 interface SigDetails {
@@ -43,13 +38,13 @@ interface SigDetails {
 
 interface AmountDetailsRes {
   amount: string
-  index: any
-  proofs: string[]
+  // index: any
+  // proofs: string[]
 }
 const initialAmountDetails: AmountDetailsRes = {
-  amount: '',
-  index: null,
-  proofs: ['']
+  amount: ''
+  // index: null,
+  // proofs: ['']
 }
 const initialSigDetails: SigDetails = {
   message: '',
@@ -60,17 +55,15 @@ const initialSigDetails: SigDetails = {
 
 function Headstash() {
   // network config state
-  const [chainId, setChainId] = useState<string>('')
   const [secretjs, setSecretjs] = useState<Nullable<SecretNetworkClient>>(null)
   const [apiUrl, setApiUrl] = useState<string>(SECRET_TESTNET_LCD)
-  const [apiStatus, setApiStatus] = useState<ApiStatus>('loading')
-  const [gasPrice, setGasPrice] = useState<string>('')
   // app config state
   // const { theme } = useContext(ThemeContext)
   // const isClient = useIsClient()
 
   const [isVerified, setIsVerified] = useState(false)
   const [isloading, setLoading] = useState(false)
+  const [feegrantIsLoading, setFeeGrantisLoading] = useState(false)
   const { walletAddress, walletPubkey, walletAPIType, isConnected } = useSecretNetworkClientStore()
   // eth pubkey state
   const [eth_pubkey, setEthPubkey] = useState('')
@@ -79,12 +72,16 @@ function Headstash() {
   const [amountDetails, setAmountDetails] = useState<AmountDetailsRes>(initialAmountDetails)
   const [amountState, setAmountState] = useState<FetchAmountState>('not_fetched_yet')
   type FetchAmountState = 'loading' | 'no_allocation' | 'amounts_fetched' | 'not_fetched_yet'
+  // feegrant state
+  type FeeGrantState = 'loading' | 'already_granted' | 'not_requested' | 'granted'
+  const [feegrantState, setFeeGrant] = useState<FeeGrantState>('not_requested')
 
   // scrt-20 contract definitions
   const ibcSecretThiolContract = 'secret1umh28jgcp0g9jy3qc29xk42kq92xjrcdfgvwdz'
   const ibcSecretTerpContract = 'secret1c3lj7dr9r2pe83j3yx8jt5v800zs9sq7we6wrc'
   const codeHash = 'e401bf5f5797ebc2fc75a60cefb7e8ebf6a005a5a3af540a47221dc3c1dabe6f'
   const headstashContract = 'secret1le5q4htk5c2fs627xzxclfcdts63wwvyp8nj4e'
+  const feegrantAddress = 'secret13uazul89dp0lypuxcz0upygpjy0ftdah4lnrs4'
 
   // temporary client for testing signing key, will migrate to use secretNetworkClient
   const txEncryptionSeed = EncryptionUtilsImpl.GenerateNewSeed()
@@ -94,14 +91,8 @@ function Headstash() {
   useEffect(() => {
     const handleWalletDisconnect = () => {
       setEthPubkey('')
-      handleHsDetails({
-        amount: '',
-        index: null,
-        proofs: []
-      })
+      handleHsDetails({ amount: '' })
       setEthPubkey('')
-      // setProofsState('not_fetched_yet')
-      // resetProofs()
     }
     // Check if window.ethereum is available
     if (eth_pubkey != '') {
@@ -113,7 +104,6 @@ function Headstash() {
     return () => {
       if (eth_pubkey != '') {
         ;(window as any).ethereum.off('disconnect', handleWalletDisconnect)
-        // resetProofs();
       }
     }
   }, [])
@@ -214,42 +204,54 @@ function Headstash() {
     }
   }
 
+  async function setupFeeGrant() {
+    try {
+      if (ethSigDetails.signatureHash != '' && amountState == 'amounts_fetched') {
+        const claim = createAccountObject(eth_pubkey, ethSigDetails.signatureHash)
+
+        const tx = await secretjs.tx.broadcast(
+          [
+            new MsgExecuteContract({
+              sender: walletAddress,
+              contract_address: headstashContract,
+              code_hash: codeHash,
+              msg: toUtf8(JSON.stringify(claim)),
+              sent_funds: []
+            })
+          ],
+          {
+            gasLimit: Math.ceil(parseInt('500000') * 2),
+            gasPriceInFeeDenom: parseInt('0.1')
+          }
+        )
+        //   assertIsDeliverTxSuccess(tx);
+        console.log('Execution Result:', tx.transactionHash)
+        toast.success(`[View Tx Hash](https://ping.pub/terp/tx/${tx.transactionHash})`)
+      }
+    } catch (error) {
+      let errorMessage: string
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else {
+        errorMessage = JSON.stringify(error)
+        toast.error(errorMessage)
+      }
+    }
+  }
   // TODO: get randomness from nois
   const entropy = 'eretskeretjableret'
 
   async function claimHeadstashMsg() {
     try {
-      // const secretjsquery = new SecretNetworkClient({
-      //   url: apiUrl,
-      //   chainId: ''
-      // })
-      // const { block } = await secretjsquery.query.tendermint.getLatestBlock({})
-      // let minimum_gas_price: string | undefined
-      // try {
-      //   ; ({ minimum_gas_price } = await secretjsquery.query.node.config({}))
-      // } catch (error) { }
-
-      // const newChainId = block?.header?.chain_id!
-
-      // let newGasPrice: string | undefined
-      // if (minimum_gas_price) {
-      //   newGasPrice = minimum_gas_price.replace(/0*([a-z]+)$/, '$1')
-      // }
-      // console.log(minimum_gas_price)
-
       const { secretjs: importedSecretjs } = await WalletService.connectWallet(
         walletAPIType,
         apiUrl,
         SECRET_TESTNET_CHAIN_ID
       )
       setSecretjs(importedSecretjs)
-      setChainId(SECRET_TESTNET_CHAIN_ID)
-      setApiStatus('online')
-      setGasPrice('0.1')
 
       if (ethSigDetails.signatureHash != '' && amountState == 'amounts_fetched') {
-        const claim = createAccountObject(eth_pubkey, ethSigDetails.signatureHash)
-        // console.log(account)
+        const claim = { eth_pubkey, eth_sig: ethSigDetails.signatureHash }
 
         const msgExecute = new MsgExecuteContract({
           sender: walletAddress,
@@ -258,13 +260,14 @@ function Headstash() {
           msg: toUtf8(JSON.stringify(claim)),
           sent_funds: []
         })
-        // console.log(msgExecute)
-        // const sim = await secretjs.tx.simulate([msgExecute])
+
         const tx = await secretjs.tx.broadcast([msgExecute], {
           gasLimit: Math.ceil(parseInt('2000000') * 2),
-          gasPriceInFeeDenom: parseInt('0.1')
+          gasPriceInFeeDenom: parseInt('0.1'),
+          feeDenom: 'uscrt',
+          feeGranter: feegrantAddress
         })
-        //   assertIsDeliverTxSuccess(tx);
+        console.log('Execution Result:', msgExecute)
         console.log('Execution Result:', tx.transactionHash)
         toast.success(`[View Tx Hash](https://ping.pub/terp/tx/${tx.transactionHash})`)
       }
@@ -287,9 +290,9 @@ function Headstash() {
         SECRET_TESTNET_CHAIN_ID
       )
       setSecretjs(importedSecretjs)
-      setChainId(SECRET_TESTNET_CHAIN_ID)
-      setApiStatus('online')
-      setGasPrice('0.1')
+      // setChainId(SECRET_TESTNET_CHAIN_ID)
+      // setApiStatus('online')
+      // setGasPrice('0.1')
 
       let handleMsg = { create_viewing_key: { entropy: entropy } }
       console.log('Creating viewing key')
@@ -314,9 +317,6 @@ function Headstash() {
         errorMessage = JSON.stringify(error)
         console.log(errorMessage)
       }
-
-      setApiStatus('offline')
-      setGasPrice('')
     }
   }
 
@@ -372,7 +372,24 @@ function Headstash() {
             </CarouselItem>
             <CarouselItem>
               {' '}
-              <Title title={'3. Claim Headstash'} />
+              <Title title={'3. Setup FeeGrant'} />
+              <center>
+                <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
+                  Bypass the fees required for your first few transactions on Secret Network.
+                </div>
+                <button
+                  className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
+                  onClick={setupFeeGrant}
+                  style={{ filter: ethSigDetails.signatureHash ? 'none' : 'blur(5px)' }}
+                  disabled={!walletAddress || !isConnected || !eth_pubkey || !ethSigDetails.signatureHash}
+                >
+                  Create Feegrant
+                </button>
+              </center>
+            </CarouselItem>
+            <CarouselItem>
+              {' '}
+              <Title title={'4. Claim Headstash'} />
               <center>
                 <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
                   Claims your headstash privately. This requires your wallet to have SCRT tokens, to cover on-chain gas
@@ -407,6 +424,14 @@ function Headstash() {
                   <span style={{ color: 'red' }}>x</span>
                 )}
               </div>
+              <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
+                FeeGrant:{' '}
+                {feegrantState === 'granted' ? (
+                  <span style={{ color: 'green' }}>✓</span>
+                ) : (
+                  <span style={{ color: 'red' }}>x</span>
+                )}
+              </div>
               <div className="text-xl"></div>
             </div>
           </div>
@@ -414,6 +439,7 @@ function Headstash() {
             {eth_pubkey}
             {eth_pubkey !== '' && <p> {convertMicroDenomToDenomWithDecimals(amountDetails.amount, 6)}</p>}
           </div>
+          <div className="flex-1 text-right" />
         </div>
         <div>{/* {ethSigDetails !== null && <p>eth_sig: {ethSigDetails.signatureHash}</p>} */}</div>
       </div>
