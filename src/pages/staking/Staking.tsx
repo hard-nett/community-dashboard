@@ -220,6 +220,7 @@ export const Staking = () => {
         // url: SECRET_LCD,
         // chainId: SECRET_CHAIN_ID
       })
+      // TODO: add client to query validators for Terp
       const { validators } = await secretjsquery.query.staking.validators({
         status: '',
         pagination: {

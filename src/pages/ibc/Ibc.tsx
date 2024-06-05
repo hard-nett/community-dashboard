@@ -10,14 +10,14 @@ import IbcForm from './components/IbcForm'
 import { IbcService } from 'services/ibc.service'
 
 export function Ibc() {
-  const [selectedToken, setSelectedToken] = useState<Token>(tokens.filter((token: Token) => token.name === 'SCRT')[0])
+  const [selectedToken, setSelectedToken] = useState<Token>(tokens.filter((token: Token) => token.name === 'TERPX')[0])
 
   const [ibcMode, setIbcMode] = useState<IbcMode>('deposit')
 
   const { isConnected } = useSecretNetworkClientStore()
 
   const [selectedSource, setSelectedSource] = useState(
-    selectedToken.deposits.find((deposit: Deposit) => deposit.chain_name.toLowerCase() === 'osmosis')
+    selectedToken.deposits.find((deposit: Deposit) => deposit.chain_name.toLowerCase() === 'terpnetwork')
   )
 
   const [searchParams] = useSearchParams()
@@ -61,10 +61,10 @@ export function Ibc() {
     }
   }, [chainUrlParam, tokenUrlParam, modeUrlParam])
 
-  const message =
-    ibcMode === 'deposit'
-      ? `Deposit your ${selectedToken.name} via IBC transfer from ${selectedSource.chain_name} to Secret Network`
-      : `Withdraw your ${selectedToken.name} via IBC transfer from Secret Network to ${selectedSource.chain_name}`
+  // const message =
+  //   ibcMode === 'deposit'
+  //     ? `Deposit your ${selectedToken.name} via IBC transfer from ${selectedSource.chain_name} to Secret Network`
+  //     : `Withdraw your ${selectedToken.name} via IBC transfer from Secret Network to ${selectedSource.chain_name}`
 
   return (
     <>
@@ -92,7 +92,7 @@ export function Ibc() {
       {/* Content */}
       <div className="container w-full max-w-xl mx-auto px-4">
         {/* Title */}
-        <Title className="mb-6" title="IBC Transfer" tooltip={message} />
+        {/* <Title className="mb-6" title="IBC Transfer" tooltip={message} /> */}
         {/* Content */}
         <div className="rounded-3xl px-6 py-6 bg-white border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800">
           <IbcForm />

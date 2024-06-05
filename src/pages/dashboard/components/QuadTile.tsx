@@ -8,6 +8,8 @@ interface Props {
   item2?: Item
   item3?: Item
   item4?: Item
+  item5?: Item
+  item6?: Item
 }
 
 export default function QuadTile(props: Props) {
@@ -15,6 +17,7 @@ export default function QuadTile(props: Props) {
     <>
       <div className="rounded-xl bg-white border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 p-8 h-full">
         <div className="flex flex-col h-full">
+          {props.item5?.value ? <>{props.item5.value}</> : <></>}
           <div className="flex-1 flex text-center items-center">
             {/* First Item */}
             <div className="flex-1 h-full flex flex-col justify-center border-r border-b border-neutral-200 dark:border-neutral-700">

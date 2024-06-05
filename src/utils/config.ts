@@ -55,29 +55,29 @@ export const chains: { [chain_name: string]: Chain } = {
     chain_image: 'img/assets/scrt.svg',
     explorer_account: 'https://testnet.ping.pub/secret/account/'
   },
-  'Terp Network': {
-    chain_name: 'Terp Network Testnet',
-    deposit_channel_id: '',
+  TerpNet: {
+    chain_name: 'TerpNetTestNet',
+    deposit_channel_id: 'connection-84',
     deposit_gas: 150_000,
     deposit_gas_denom: 'uthiolx',
-    withdraw_channel_id: '',
+    withdraw_channel_id: 'connection-84',
     withdraw_gas: 30_000,
-    chain_id: 'morocco-1',
+    chain_id: '90u-4',
     bech32_prefix: 'terp',
-    lcd: 'https://terp-testnet-rpc.itrocket.net:443',
+    lcd: 'https://terp-testnet-api.itrocket.net:443',
     chain_image: '/terp.png',
     explorer_account: 'https://ping.pub'
   },
-  'Terp Network Testnet': {
-    chain_name: 'Terp Network Testnet',
-    deposit_channel_id: '',
+  TerpNetTestNet: {
+    chain_name: 'TerpNetTestNet',
+    deposit_channel_id: 'connection-99',
     deposit_gas: 150_000,
     deposit_gas_denom: 'uthiolx',
-    withdraw_channel_id: '',
+    withdraw_channel_id: 'connection-99',
     withdraw_gas: 30_000,
-    chain_id: '90u-2',
+    chain_id: '90u-4',
     bech32_prefix: 'terp',
-    lcd: 'https://terp-testnet-rpc.itrocket.net:443',
+    lcd: 'https://terp-testnet-api.itrocket.net:443',
     chain_image: '/terp.png',
     explorer_account: 'https://ping.pub'
   },
@@ -457,6 +457,32 @@ export const chains: { [chain_name: string]: Chain } = {
     lcd: 'https://rest.stargaze-apis.com',
     chain_image: '/stars.svg',
     explorer_account: 'https://www.mintscan.io/stargaze/account/'
+  },
+  Terp: {
+    chain_name: 'TerpNet',
+    deposit_channel_id: '',
+    deposit_gas: 150_000,
+    deposit_gas_denom: 'uthiol',
+    withdraw_channel_id: '',
+    withdraw_gas: 30_000,
+    chain_id: 'morocco-1',
+    bech32_prefix: 'terp',
+    lcd: 'https://',
+    chain_image: '/terp.svg',
+    explorer_account: 'https://www.ping.pub/terp'
+  },
+  TerpTestnet: {
+    chain_name: 'TerpNetTestNet',
+    deposit_channel_id: '',
+    deposit_gas: 150_000,
+    deposit_gas_denom: 'uthiolx',
+    withdraw_channel_id: '',
+    withdraw_gas: 30_000,
+    chain_id: '90u-4',
+    bech32_prefix: 'terp',
+    lcd: 'https://',
+    chain_image: '/terp.svg',
+    explorer_account: 'https://www.ping.pub/terp'
   },
   Stride: {
     chain_name: 'Stride',
@@ -2106,6 +2132,122 @@ export const tokens: Token[] = [
             }
           ],
           'ustars'
+        )
+      }
+    ]
+  },
+  {
+    name: 'TERP',
+    description: 'TerpNet Governance Token',
+    address: '',
+    code_hash: '',
+    image: '/terp.svg',
+    decimals: 6,
+    coingecko_id: 'terpnetwork',
+    deposits: [
+      {
+        chain_name: 'TerpNet',
+        denom: 'uterp'
+      }
+    ],
+    withdrawals: [
+      {
+        chain_name: 'TerpNet',
+        denom: ibcDenom(
+          [
+            {
+              incomingChannelId: chains['TerpNet'].withdraw_channel_id,
+              incomingPortId: 'transfer'
+            }
+          ],
+          'uthiol'
+        )
+      }
+    ]
+  },
+  {
+    name: 'THIOL',
+    description: 'TerpNet Gas TOken',
+    address: '',
+    code_hash: '',
+    image: '/thiol.svg',
+    decimals: 6,
+    coingecko_id: 'thiol',
+    deposits: [
+      {
+        chain_name: 'TerpNet',
+        denom: 'uthiol'
+      }
+    ],
+    withdrawals: [
+      {
+        chain_name: 'TerpNet',
+        denom: ibcDenom(
+          [
+            {
+              incomingChannelId: chains['TerpNet'].withdraw_channel_id,
+              incomingPortId: 'transfer'
+            }
+          ],
+          'uthiol'
+        )
+      }
+    ]
+  },
+  {
+    name: 'TERPX',
+    description: 'TerpNet Governance Token',
+    address: '',
+    code_hash: '',
+    image: '/terp.svg',
+    decimals: 6,
+    coingecko_id: 'terpnetwork',
+    deposits: [
+      {
+        chain_name: 'TerpNetTestNet',
+        denom: 'uterpx'
+      }
+    ],
+    withdrawals: [
+      {
+        chain_name: 'TerpNetTestNet ',
+        denom: ibcDenom(
+          [
+            {
+              incomingChannelId: chains['TerpNetTestNet'].withdraw_channel_id,
+              incomingPortId: 'transfer'
+            }
+          ],
+          'uthiolx'
+        )
+      }
+    ]
+  },
+  {
+    name: 'THIOLX',
+    description: 'TerpNet Gas TOken',
+    address: '',
+    code_hash: '',
+    image: '/thiol.svg',
+    decimals: 6,
+    coingecko_id: 'thiolx',
+    deposits: [
+      {
+        chain_name: 'TerpNetTestNet',
+        denom: 'uthiolx'
+      }
+    ],
+    withdrawals: [
+      {
+        chain_name: 'TerpNetTestNet ',
+        denom: ibcDenom(
+          [
+            {
+              incomingChannelId: chains['TerpNetTestNet'].withdraw_channel_id,
+              incomingPortId: 'transfer'
+            }
+          ],
+          'uthiolx'
         )
       }
     ]
@@ -4490,7 +4632,7 @@ export const SECRET_LCD = chains['Secret Network'].lcd
 export const SECRET_TESTNET_CHAIN_ID = chains['Secret Network'].chain_id
 export const SECRET_TESTNET_LCD = chains['Secret Network Testnet'].lcd
 
-export const TERPNETWORK_CHAIN_ID = chains['Terp Network'].chain_id
-export const TERPNETWORK_LCD = chains['Terp Network'].lcd
-export const TERPNETOWRK_TESTNET_CHAIN_ID = chains['Terp Network Testnet'].chain_id
-export const TERPNETWORK_TESTNET_LCD = chains['Terp Network Testnet'].lcd
+export const TERPNETWORK_CHAIN_ID = chains['TerpNet'].chain_id
+export const TERPNETWORK_LCD = chains['TerpNet'].lcd
+export const TERPNETOWRK_TESTNET_CHAIN_ID = chains['TerpNetTestNet'].chain_id
+export const TERPNETWORK_TESTNET_LCD = chains['TerpNetTestNet'].lcd

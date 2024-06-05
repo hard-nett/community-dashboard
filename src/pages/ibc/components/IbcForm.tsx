@@ -71,10 +71,10 @@ export default function IbcForm() {
 
   const formik = useFormik<IFormValues>({
     initialValues: {
-      chain: selectableChains.find((chain: Chain) => chain.chain_name === 'Osmosis'),
+      chain: selectableChains.find((chain: Chain) => chain.chain_name === 'TerpNetTestNet'),
       token: IbcService.getSupportedIbcTokensByChain(
-        selectableChains.find((chain: Chain) => chain.chain_name === 'Osmosis')
-      ).find((token: Token) => token.name === 'SCRT'),
+        selectableChains.find((chain: Chain) => chain.chain_name === 'TerpNetTestNet')
+      ).find((token: Token) => token.name === 'TERPX'),
       ibcMode: 'deposit',
       amount: ''
     },

@@ -3,7 +3,7 @@ import type { Config } from 'tailwindcss'
 export default {
   content: ['index.html', './src/**/*.{js,jsx,ts,tsx}'],
   presets: [],
-  darkMode: 'class', // or 'media'
+  darkMode: 'media', // or 'media'
   theme: {
     accentColor: ({ theme }) => ({
       ...theme('colors'),
@@ -32,6 +32,7 @@ export default {
       square: '1 / 1',
       video: '16 / 9'
     },
+
     backdropBlur: ({ theme }) => theme('blur'),
     backdropBrightness: ({ theme }) => theme('brightness'),
     backdropContrast: ({ theme }) => theme('contrast'),
@@ -168,7 +169,8 @@ export default {
       snblue: '#60A0DC',
       snpurple: '#8b7ab0',
       snpurple2: 'bdb3d0',
-      snbronze: '#E8CDAE'
+      snbronze: '#E8CDAE',
+      terp: '#C8F7D1'
     }),
     columns: {
       auto: 'auto',

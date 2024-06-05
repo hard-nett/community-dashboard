@@ -64,7 +64,7 @@ export const DefaultLayout = ({ children }: any) => {
       {/* Feedback Button */}
       <FeedbackButton url={'https://github.com/scrtlabs/dash.scrt.network/issues/new'} />
       {/* Help Button */}
-      <FloatingCTAButton url="https://linktr.ee/SCRTSupport" text="Need Help?" />
+      {/* <FloatingCTAButton url="https://linktr.ee/SCRTSupport" text="Need Help?" /> */}
       <div className="flex">
         {/* Menu */}
         <aside
@@ -82,10 +82,9 @@ export const DefaultLayout = ({ children }: any) => {
         </aside>
         <main className="flex flex-col min-h-screen flex-1 lg:ml-[17rem]">
           {/* Info Box */}
-          <div className="bg-indigo-500 dark:bg-indigo-600 px-4 py-1.5 text-sm text-center text-white">
+          {/* <div className="bg-stone  px-4 py-1.5 text-sm text-center text-white">
             <b>
-              {`Earn yield on your ETH assets while benefiting from private DeFi
-              with Shade Protocol! `}
+              {`Purchase the Celebrator Headstash NFT on Stashh.io! `}
 
               <a
                 href="https://scrt.network/evm-shade-metamask-defi"
@@ -96,7 +95,7 @@ export const DefaultLayout = ({ children }: any) => {
                 Learn More ⚡️
               </a>
             </b>
-          </div>
+          </div> */}
 
           <div className="flex-1">
             {/* Top Bar [Burger Menu | Socials | Keplr] */}

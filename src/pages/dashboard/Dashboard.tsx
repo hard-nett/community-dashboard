@@ -1,6 +1,6 @@
 import { useEffect, useState, createContext, useContext } from 'react'
 import { SecretNetworkClient } from 'secretjs'
-import CurrentPrice from './components/CurrentPrice'
+import ClaimHeadstash from './components/CurrentPrice'
 import MiniTile from './components/MiniTile'
 import PriceVolumeTVL from './components/PriceVolTVLChart/PriceVolumeTVL'
 import QuadTile from './components/QuadTile'
@@ -12,6 +12,8 @@ import { APIContext } from 'context/APIContext'
 import { Helmet } from 'react-helmet-async'
 import { trackMixPanelEvent, dashboardPageTitle, dashboardPageDescription, dashboardJsonLdSchema } from 'utils/commons'
 import UnbondingsChart from './components/UnbondingsChart'
+import Headstash from 'pages/headstash/Headstash'
+import Title from 'components/Title'
 
 function Dashboard() {
   const {
@@ -132,21 +134,20 @@ function Dashboard() {
   }, [L5AnalyticslApiData])
 
   // volume & market cap
-  const [volumeFormattedString, setVolumeFormattedString] = useState('')
+  // const [volumeFormattedString, setVolumeFormattedString] = useState('')
   const [marketCapFormattedString, setMarketCapFormattedString] = useState('')
   const [TVLFormattedString, setTVLFormattedString] = useState('')
 
   useEffect(() => {
-    if (volume) {
-      setVolumeFormattedString('$' + formatNumber(parseInt(volume.toFixed(0).toString()), 2))
-    }
+    // setVolumeFormattedString('View Documentation')
+
     if (marketCap) {
       setMarketCapFormattedString('$' + formatNumber(parseInt(marketCap.toFixed(0).toString()), 2))
     }
     if (defiLamaApiData_TVL) {
       setTVLFormattedString('$' + formatNumber(parseInt(defiLamaApiData_TVL.toFixed(0).toString()), 2))
     }
-  }, [volume, marketCap, defiLamaApiData_TVL])
+  }, [])
 
   const [circulatingSupply, setCirculatingSupply] = useState(0)
 
@@ -200,7 +201,7 @@ function Dashboard() {
 
         <script type="application/ld+json">{JSON.stringify(dashboardJsonLdSchema)}</script>
       </Helmet>
-      <div className="px-4 mx-auto space-y-4 w-full">
+      <div className="px-4 mx-auto space-y-4 w-full ">
         <div className="grid grid-cols-12 gap-4">
           {/* WideQuadTile */}
           {/* <div className='col-span-12'>
@@ -208,49 +209,50 @@ function Dashboard() {
             </div> */}
 
           {/* Price */}
-          <div className="col-span-12 sm:col-span-6 lg:col-span-12 xl:col-span-6 2xl:col-span-4">
-            <CurrentPrice price={currentPrice} />
-          </div>
+          <div className="col-span-12 sm:col-span-6 lg:col-span-12 xl:col-span-6 2xl:col-span-4"></div>
 
           {/* Volume */}
           <div className="col-span-12 sm:col-span-6 lg:col-span-12 xl:col-span-6 2xl:col-span-2">
-            <MiniTile name="Volume" value={volumeFormattedString} />
+            {/* <ClaimHeadstash price={currentPrice} /> */}
+            {/* <MiniTile name="View Documentation" value={'View Documentation'} /> */}
           </div>
 
           {/* Market Cap */}
-          <div className="col-span-12 sm:col-span-6 lg:col-span-12 xl:col-span-6 2xl:col-span-2">
-            <MiniTile name="Market Cap/TVL" value={`${marketCapFormattedString} / ${TVLFormattedString}`} />
+          <div className="col-span-full sm:col-span-6 lg:col-span-12 xl:col-span-6 2xl:col-span-2">
+            {/* <MiniTile name="View Headstash NFT" value={'View Documentation'} /> */}
+            {/* <SocialMedia /> */}
           </div>
 
           {/* Social Media */}
-          <div className="col-span-12 sm:col-span-6 lg:col-span-12 xl:col-span-6 2xl:col-span-4">
-            <SocialMedia />
-          </div>
+          <div className="col-span-12 sm:col-span-6 lg:col-span-12 xl:col-span-6 2xl:col-span-4"></div>
 
           {/* Block Info */}
           <div className="col-span-12 md:col-span-6 lg:col-span-12 xl:col-span-6 2xl:col-span-4">
-            <QuadTile
-              item1={{ key: 'Block Height', value: blockHeightFormattedString }}
+            {/* <QuadTile
+              item1={{ key: 'Total Communities', value: '9' }}
               item2={{
-                key: 'Block Time (last block)',
-                value: blockTimeFormattedString
+                key: 'Total Eligible',
+                value: '15,000'
               }}
               item3={{
-                key: '# Transactions (total)',
+                key: 'Total $TERP Allocated',
                 value: transactionsFormattedString
               }}
-              item4={{ key: '# Active Validators', value: activeValidatorsFormattedString }}
-            />
+              item4={{ key: '# Days Until Clawback', value: activeValidatorsFormattedString }}
+              item5={{ key: 'Headstash Details', value: 'Headstash Details' }}
+            /> */}
           </div>
 
-          <div className="col-span-12 md:col-span-6 lg:col-span-12 xl:col-span-6 2xl:col-span-4">
+          <div className="col-span-full">
+            <Title title={'Private Headstash Dashboard'} />
             <div className="rounded-xl bg-white border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 px-6 py-8">
-              <StakingChart />
+              {/* <StakingChart /> */}
+              <Headstash />
             </div>
           </div>
 
           {/* Block Info */}
-          <div className="col-span-12 md:col-span-12 lg:col-span-12 xl:col-span-12 2xl:col-span-4">
+          {/* <div className="col-span-12 md:col-span-12 lg:col-span-12 xl:col-span-12 2xl:col-span-4">
             <QuadTile
               item1={{
                 key: 'APR/Staking Yield',
@@ -262,18 +264,15 @@ function Dashboard() {
                 value: taxFormattedString
               }}
               item4={{ key: 'Bonded Ratio', value: bondedRatioFormattedString }}
+              item5={{ key: 'TerpNet Details', value: 'TerpNet Details' }}
             />
-          </div>
+          </div> */}
         </div>
 
         <div className="grid grid-cols-12 gap-4">
           {/* Item */}
-          <div className="col-span-12 rounded-xl bg-white border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 p-4">
-            <PriceVolumeTVL />
-          </div>
-          <div className="col-span-12 rounded-xl bg-white border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 p-4">
-            <UnbondingsChart />
-          </div>
+          <div className="col-span-12 rounded-xl bg-white border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 p-4"></div>
+          <div className="col-span-12 rounded-xl bg-white border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 p-4"></div>
           {/* Item */}
           {/* <div className='col-span-12 xl:col-span-6 bg-neutral-800 p-4 rounded-xl'>
               <PriceChart />

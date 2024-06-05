@@ -1,6 +1,6 @@
 {
-  "name": "claim_headstash_dashboard",
-  "description": "An entry point for new users into Terp Network",
+  "name": "private headstash ui",
+  "description": "An entry point for claiming private airdrops",
   "version": "1.0.0",
   "scripts": {
     "start": "vite --host",

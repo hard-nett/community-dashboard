@@ -3,6 +3,7 @@ import { bridgeJsonLdSchema, bridgePageDescription, headstashPageTitle, randomPa
 import { useSecretNetworkClientStore } from 'store/secretNetworkClient'
 import { useEffect, useState, useContext } from 'react'
 import toast from 'react-hot-toast'
+import { scrtToken } from 'utils/tokens'
 import { ThemeContext } from 'context/ThemeContext'
 import { useIsClient } from 'hooks/useIsClient'
 import Title from 'components/Title'
@@ -60,11 +61,9 @@ function Headstash() {
   // app config state
   // const { theme } = useContext(ThemeContext)
   // const isClient = useIsClient()
-
   const [isVerified, setIsVerified] = useState(false)
   const [isloading, setLoading] = useState(false)
-  const [feegrantIsLoading, setFeeGrantisLoading] = useState(false)
-  const { walletAddress, walletPubkey, walletAPIType, isConnected } = useSecretNetworkClientStore()
+  const { walletAddress, walletAPIType, isConnected, getBalance } = useSecretNetworkClientStore()
   // eth pubkey state
   const [eth_pubkey, setEthPubkey] = useState('')
   const [ethSigDetails, setEthSigDetails] = useState<SigDetails>(initialSigDetails)
@@ -73,7 +72,7 @@ function Headstash() {
   const [amountState, setAmountState] = useState<FetchAmountState>('not_fetched_yet')
   type FetchAmountState = 'loading' | 'no_allocation' | 'amounts_fetched' | 'not_fetched_yet'
   // feegrant state
-  type FeeGrantState = 'loading' | 'already_granted' | 'not_requested' | 'granted'
+  type FeeGrantState = 'loading' | 'already_granted' | 'not_requested' | 'granted' | 'not_granted'
   const [feegrantState, setFeeGrant] = useState<FeeGrantState>('not_requested')
 
   // scrt-20 contract definitions
@@ -84,7 +83,6 @@ function Headstash() {
   const feegrantAddress = 'secret13uazul89dp0lypuxcz0upygpjy0ftdah4lnrs4'
 
   // temporary client for testing signing key, will migrate to use secretNetworkClient
-  const txEncryptionSeed = EncryptionUtilsImpl.GenerateNewSeed()
 
   const [api, setApi] = useState<CarouselApi>()
 
@@ -207,26 +205,28 @@ function Headstash() {
   async function setupFeeGrant() {
     try {
       if (ethSigDetails.signatureHash != '' && amountState == 'amounts_fetched') {
-        const claim = createAccountObject(eth_pubkey, ethSigDetails.signatureHash)
+        const newBalance = getBalance(scrtToken, true)
+        console.log(newBalance)
 
-        const tx = await secretjs.tx.broadcast(
-          [
-            new MsgExecuteContract({
-              sender: walletAddress,
-              contract_address: headstashContract,
-              code_hash: codeHash,
-              msg: toUtf8(JSON.stringify(claim)),
-              sent_funds: []
-            })
-          ],
-          {
-            gasLimit: Math.ceil(parseInt('500000') * 2),
-            gasPriceInFeeDenom: parseInt('0.1')
+        if (Number(newBalance) != 0) {
+          console.log('Account has funds')
+          toast.custom('Account has funds')
+          console.error('Account has funds')
+        } else {
+          // request feegrant from indexer
+          // Set loading state to true
+          setLoading(true)
+          const feegrantAPI = `http://localhost:3001/registerFeeGrant/${eth_pubkey}/${walletAddress}/${ethSigDetails.signatureHash}`
+          // GET request for amounts
+          const amounts = await fetch(feegrantAPI)
+          if (amounts.ok) {
+            const result = await amounts.json()
+            // handleHsDetails(result)
+            console.log('headstash details:', result)
+          } else {
+            console.error('cannot get headstash amounts:', amounts.status)
           }
-        )
-        //   assertIsDeliverTxSuccess(tx);
-        console.log('Execution Result:', tx.transactionHash)
-        toast.success(`[View Tx Hash](https://ping.pub/terp/tx/${tx.transactionHash})`)
+        }
       }
     } catch (error) {
       let errorMessage: string
@@ -262,14 +262,14 @@ function Headstash() {
         })
 
         const tx = await secretjs.tx.broadcast([msgExecute], {
-          gasLimit: Math.ceil(parseInt('2000000') * 2),
-          gasPriceInFeeDenom: parseInt('0.1'),
+          gasLimit: Math.ceil(parseInt('000000') * 2),
+          gasPriceInFeeDenom: parseInt('0.05'),
           feeDenom: 'uscrt',
           feeGranter: feegrantAddress
         })
         console.log('Execution Result:', msgExecute)
         console.log('Execution Result:', tx.transactionHash)
-        toast.success(`[View Tx Hash](https://ping.pub/terp/tx/${tx.transactionHash})`)
+        toast.success(`View Tx Hash: ${tx.transactionHash}`)
       }
     } catch (error) {
       let errorMessage: string
@@ -341,7 +341,6 @@ function Headstash() {
       </Helmet>
       <div className="max-w-2xl mx-auto px-6 text-neutral-600 dark:text-neutral-400 leading-7 text-justify">
         {/* Title */}
-        <Title title={'Private Headstash Airdrop'} />
         <Carousel setApi={setApi}>
           <CarouselContent>
             <CarouselItem className="basis">
@@ -411,11 +410,11 @@ function Headstash() {
         </Carousel>
         <br />
         <div className="rounded-xl bg-white border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 h-full flex items-center px-4 py-2">
-          <div className="flex-1">
-            <div className="text-center inline-block">
-              Headstash Details
-              <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5"> Address:</div>
-              <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5"> Amount:</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+            <div>
+              <h2 className="text-center inline-block">Headstash Details</h2>
+              <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">Address:</div>
+              <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">Amount:</div>
               <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
                 Signed:{' '}
                 {ethSigDetails && ethSigDetails !== initialSigDetails ? (
@@ -432,12 +431,12 @@ function Headstash() {
                   <span style={{ color: 'red' }}>x</span>
                 )}
               </div>
-              <div className="text-xl"></div>
             </div>
-          </div>
-          <div className="flex-1 text-right">
-            {eth_pubkey}
-            {eth_pubkey !== '' && <p> {convertMicroDenomToDenomWithDecimals(amountDetails.amount, 6)}</p>}
+            <div className="flex-1 text-right font-bold inline text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-teal-500">
+              <br />
+              {eth_pubkey}
+              {eth_pubkey !== '' && <p>{convertMicroDenomToDenomWithDecimals(amountDetails.amount, 6)}</p>}
+            </div>
           </div>
           <div className="flex-1 text-right" />
         </div>

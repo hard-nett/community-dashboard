@@ -208,8 +208,9 @@ let broadcastFeeGrant = async (secretjs: SecretNetworkClient, cosmos_addr: strin
 
   if (msg) {
     if (msg.code != 0) {
-      return msg.arrayLog
+      return msg
     }
-    return msg.rawLog
+    return msg
   }
+  return msg
 }
