@@ -17,8 +17,7 @@ export interface TokenBalances {
 
 export type GetBalanceError = 'viewingKeyError' | 'GenericFetchError'
 
-// todo: add headstash & encryption details
-interface SecretNetworkClientState {
+interface InterchainClientState {
   isInitialized: boolean
   init: () => void
   isConnected: boolean
@@ -32,7 +31,7 @@ interface SecretNetworkClientState {
   connectWallet: (walletAPIType?: WalletAPIType) => void
   disconnectWallet: () => void
   feeGrantStatus: FeeGrantStatus
-  requestFeeGrant: (encryptedEthSig: string) => Promise<void>
+  requestFeeGrant: () => Promise<void>
   scrtBalance: Nullable<string>
   sScrtBalance: Nullable<string>
   setsScrtBalance: () => void
@@ -52,16 +51,9 @@ interface SecretNetworkClientState {
   setIsGetWalletModalOpen: (isGetWalletModalOpen: boolean) => void
   isConnectWalletModalOpen: boolean
   setIsConnectWalletModalOpen: (isConnectWalletModalOpen: boolean) => void
-  ethAddress: Nullable<string>
-  unEncryptedEthSig: Nullable<string>
-  encryptedEthSig: Nullable<string>
-  setUnencryptedEthSig: (un: string) => void
-  // eciesPubkey: string,
-  // encryptEthSig: (unEncryptedEthSig: string) => Promise<void>,
-  // setEthAddr: (addr: string) => void,
 }
 
-export const useSecretNetworkClientStore = create<SecretNetworkClientState>()((set, get) => ({
+export const useInterchainClientStore = create<InterchainClientState>()((set, get) => ({
   isInitialized: false,
   init: () => {
     const autoConnect = localStorage.getItem('autoConnect')
@@ -73,18 +65,6 @@ export const useSecretNetworkClientStore = create<SecretNetworkClientState>()((s
   isConnected: false,
   walletAddress: null,
   walletPubkey: null,
-  ethAddress: null,
-  unEncryptedEthSig: null,
-  encryptedEthSig: null,
-  setEthAddr: async (addr: string) => set({ ethAddress: addr }),
-  setUnencryptedEthSig: async (sig: string) => set({ unEncryptedEthSig: sig }),
-  setEncryptedSig: async (encrypted: string) => set({ encryptedEthSig: encrypted }),
-  // eciesPubkey: import.meta.env.ECIES_PUBKEY,
-  // encryptEthSig: async (sig: string) => {
-  //   const { unEncryptedEthSig, eciesPubkey } = get()
-  //   let encrypted = encrypt(eciesPubkey, Buffer.from(sig))
-  //   set({ unEncryptedEthSig, encryptedEthSig: encrypted })
-  // },
   setWalletAddress: (walletAddress: string) => set({ walletAddress }),
   setKey: (walletPubkey: Key) => set({ walletPubkey }),
   secretNetworkClient: null,
@@ -113,9 +93,7 @@ export const useSecretNetworkClientStore = create<SecretNetworkClientState>()((s
       secretNetworkClient: null,
       isConnected: false,
       scrtBalance: null,
-      sScrtBalance: null,
-      unEncryptedEthSig: null,
-      encryptedEthSig: null
+      sScrtBalance: null
     })
     const { stopBalanceRefresh } = get()
     stopBalanceRefresh()
@@ -123,8 +101,8 @@ export const useSecretNetworkClientStore = create<SecretNetworkClientState>()((s
   },
   feeGrantStatus: 'untouched',
   requestFeeGrant: async () => {
-    const { feeGrantStatus, walletAddress, unEncryptedEthSig } = get()
-    const result = await WalletService.requestFeeGrantService(feeGrantStatus, walletAddress, unEncryptedEthSig)
+    const { feeGrantStatus, walletAddress } = get()
+    const result = await WalletService.requestFeeGrantService(feeGrantStatus, walletAddress)
     set({ feeGrantStatus: result })
   },
   scrtBalance: null,

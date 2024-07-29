@@ -56,24 +56,24 @@ export const chains: { [chain_name: string]: Chain } = {
     explorer_account: 'https://testnet.ping.pub/secret/account/'
   },
   TerpNet: {
-    chain_name: 'TerpNetTestNet',
-    deposit_channel_id: 'connection-84',
+    chain_name: 'TerpNet',
+    deposit_channel_id: 'connection-01',
     deposit_gas: 150_000,
-    deposit_gas_denom: 'uthiolx',
-    withdraw_channel_id: 'connection-84',
+    deposit_gas_denom: 'uthiol',
+    withdraw_channel_id: 'connection-02',
     withdraw_gas: 30_000,
-    chain_id: '90u-4',
+    chain_id: 'morocco-1',
     bech32_prefix: 'terp',
-    lcd: 'https://terp-testnet-api.itrocket.net:443',
+    lcd: 'https://api.terp.network:443',
     chain_image: '/terp.png',
     explorer_account: 'https://ping.pub'
   },
   TerpNetTestNet: {
     chain_name: 'TerpNetTestNet',
-    deposit_channel_id: 'connection-99',
+    deposit_channel_id: 'channel-3',
     deposit_gas: 150_000,
     deposit_gas_denom: 'uthiolx',
-    withdraw_channel_id: 'connection-99',
+    withdraw_channel_id: 'channel-60',
     withdraw_gas: 30_000,
     chain_id: '90u-4',
     bech32_prefix: 'terp',
@@ -2160,7 +2160,7 @@ export const tokens: Token[] = [
               incomingPortId: 'transfer'
             }
           ],
-          'uthiol'
+          'uterp'
         )
       }
     ]
@@ -2218,7 +2218,7 @@ export const tokens: Token[] = [
               incomingPortId: 'transfer'
             }
           ],
-          'uthiolx'
+          'uterpx'
         )
       }
     ]

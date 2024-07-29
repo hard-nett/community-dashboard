@@ -1,5 +1,11 @@
 import { Helmet } from 'react-helmet-async'
-import { bridgeJsonLdSchema, bridgePageDescription, headstashPageTitle, randomPadding } from 'utils/commons'
+import {
+  bridgeJsonLdSchema,
+  bridgePageDescription,
+  headstashPageTitle,
+  randomPadding,
+  trackMixPanelEvent
+} from 'utils/commons'
 import { useSecretNetworkClientStore } from 'store/secretNetworkClient'
 import { useEffect, useState, useContext } from 'react'
 import toast from 'react-hot-toast'
@@ -29,67 +35,58 @@ import {
   CarouselPrevious
 } from 'components/UI/carousel'
 import { convertMicroDenomToDenomWithDecimals } from 'utils/tokens'
-
-interface SigDetails {
-  message: string
-  signatureHash: any
-  address: string
-  timestamp: string
-}
-
-interface AmountDetailsRes {
-  amount: string
-  // index: any
-  // proofs: string[]
-}
-const initialAmountDetails: AmountDetailsRes = {
-  amount: ''
-  // index: null,
-  // proofs: ['']
-}
-const initialSigDetails: SigDetails = {
-  message: '',
-  signatureHash: null,
-  address: '',
-  timestamp: ''
-}
+import {
+  AmountDetailsRes,
+  SigDetails,
+  codeHash,
+  feegrantAddress,
+  headstashContract,
+  ibcSecretTerpContract,
+  initialAmountDetails,
+  initialSigDetails
+} from 'utils/headstash'
+import { getShortAddress, getShortTxHash } from 'utils/getShortAddress'
+import ActionableStatus from 'components/FeeGrant/components/ActionableStatus'
+import { encrypt } from 'eciesjs'
+import crypto from 'crypto'
+import encrypt_eth_signature from 'utils/ecies'
+import { Link } from 'react-router-dom'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faShuffle } from '@fortawesome/free-solid-svg-icons'
 
 function Headstash() {
   // network config state
   const [secretjs, setSecretjs] = useState<Nullable<SecretNetworkClient>>(null)
   const [apiUrl, setApiUrl] = useState<string>(SECRET_TESTNET_LCD)
-  // app config state
-  // const { theme } = useContext(ThemeContext)
-  // const isClient = useIsClient()
   const [isVerified, setIsVerified] = useState(false)
   const [isloading, setLoading] = useState(false)
-  const { walletAddress, walletAPIType, isConnected, getBalance } = useSecretNetworkClientStore()
+  const {
+    walletAddress,
+    walletAPIType,
+    isConnected,
+    getBalance,
+    unEncryptedEthSig,
+    setUnencryptedEthSig,
+    feeGrantStatus
+  } = useSecretNetworkClientStore()
   // eth pubkey state
   const [eth_pubkey, setEthPubkey] = useState('')
   const [ethSigDetails, setEthSigDetails] = useState<SigDetails>(initialSigDetails)
+  const [encryptedEthSig, setEncryptedEthSig] = useState<Uint8Array>()
   // airdrop amount state
   const [amountDetails, setAmountDetails] = useState<AmountDetailsRes>(initialAmountDetails)
   const [amountState, setAmountState] = useState<FetchAmountState>('not_fetched_yet')
   type FetchAmountState = 'loading' | 'no_allocation' | 'amounts_fetched' | 'not_fetched_yet'
   // feegrant state
   type FeeGrantState = 'loading' | 'already_granted' | 'not_requested' | 'granted' | 'not_granted'
-  const [feegrantState, setFeeGrant] = useState<FeeGrantState>('not_requested')
-
-  // scrt-20 contract definitions
-  const ibcSecretThiolContract = 'secret1umh28jgcp0g9jy3qc29xk42kq92xjrcdfgvwdz'
-  const ibcSecretTerpContract = 'secret1c3lj7dr9r2pe83j3yx8jt5v800zs9sq7we6wrc'
-  const codeHash = 'e401bf5f5797ebc2fc75a60cefb7e8ebf6a005a5a3af540a47221dc3c1dabe6f'
-  const headstashContract = 'secret1le5q4htk5c2fs627xzxclfcdts63wwvyp8nj4e'
-  const feegrantAddress = 'secret13uazul89dp0lypuxcz0upygpjy0ftdah4lnrs4'
 
   // temporary client for testing signing key, will migrate to use secretNetworkClient
-
   const [api, setApi] = useState<CarouselApi>()
 
   useEffect(() => {
     const handleWalletDisconnect = () => {
       setEthPubkey('')
-      handleHsDetails({ amount: '' })
+      handleHsDetails(initialAmountDetails, 'not_fetched_yet')
       setEthPubkey('')
     }
     // Check if window.ethereum is available
@@ -98,22 +95,26 @@ function Headstash() {
       ;(window as any).ethereum.on('disconnect', handleWalletDisconnect)
     }
 
+    console.log(eth_pubkey)
+    console.log('headstash detials:', amountDetails.amount)
     // clean event listener on unmount
     return () => {
       if (eth_pubkey != '') {
         ;(window as any).ethereum.off('disconnect', handleWalletDisconnect)
       }
     }
-  }, [])
+  }, [eth_pubkey])
 
   // set eth_pubkey
   const handleEthPubkey = (eth_pubkey: string) => {
     setEthPubkey(eth_pubkey)
   }
   // set headstash detials
-  const handleHsDetails = (amountDetails: AmountDetailsRes) => {
+  const handleHsDetails = (amountDetails: AmountDetailsRes, state: FetchAmountState) => {
+    console.log(amountDetails)
+    console.log(amountState)
     setAmountDetails(amountDetails)
-    setAmountState('amounts_fetched')
+    setAmountState(state)
   }
 
   // fetch headstash data
@@ -136,9 +137,7 @@ function Headstash() {
         const amounts = await fetch(headstashDetailsAPI)
         if (amounts.ok) {
           const result = await amounts.json()
-
-          handleHsDetails(result)
-          setAmountState('amounts_fetched')
+          handleHsDetails(result, 'amounts_fetched')
           console.log('headstash detials:', result)
         } else {
           console.error('cannot get headstash amounts:', amounts.status)
@@ -151,7 +150,6 @@ function Headstash() {
         setLoading(false)
       }
     }
-
     // Call the fetchHeadstash function when eth_pubkey changes
     if (eth_pubkey) {
       fetchHeadstash()
@@ -161,81 +159,46 @@ function Headstash() {
   // create eth sig
   const handleEthSig = async () => {
     try {
-      // ensure metamask is connected
       if (!isConnected || !eth_pubkey) {
         toast.error(
-          ' Unable to sign verification message. Please make sure both Metamask & the desired interchain wallet is connected.'
+          'Unable to sign verification message. Please ensure both Metamask & the desired interchain wallet are connected.'
         )
         return
       }
-      // connected cosmos wallet gets added into message to be signed
+
+      // define the msg to sign
       if (walletAddress !== undefined) {
-        const cosmosAddress: string = walletAddress.toString()
+        const cosmosAddress = walletAddress.toString()
         const from = eth_pubkey
-        // define the msg being signed by Metamask
         const msg = `0x${Buffer.from(cosmosAddress, 'utf8').toString('hex')}`
-        // sign the msg
+
+        // trigger metamask
         const sign = await (window as any).ethereum.request({
           method: 'personal_sign',
           params: [msg, from]
         })
+
+        // define sig result type
         const sig = {
           message: cosmosAddress,
           signatureHash: sign,
           address: from,
           timestamp: new Date().toISOString()
         }
-        setEthSigDetails(sig)
+
+        console.log('Signature object:', sig)
+
+        // set values to local-storage
+        setEthSigDetails(sign)
         setIsVerified(true)
-        console.log(sig)
+        setUnencryptedEthSig(sig.signatureHash)
       } else {
         toast.error('Error Updating ethSig.')
       }
     } catch (error) {
-      let errorMessage: string
-      if (error instanceof Error) {
-        errorMessage = error.message
-      } else {
-        errorMessage = JSON.stringify(error)
-        toast.error(errorMessage)
-      }
-    }
-  }
-
-  async function setupFeeGrant() {
-    try {
-      if (ethSigDetails.signatureHash != '' && amountState == 'amounts_fetched') {
-        const newBalance = getBalance(scrtToken, true)
-        console.log(newBalance)
-
-        if (Number(newBalance) != 0) {
-          console.log('Account has funds')
-          toast.custom('Account has funds')
-          console.error('Account has funds')
-        } else {
-          // request feegrant from indexer
-          // Set loading state to true
-          setLoading(true)
-          const feegrantAPI = `http://localhost:3001/registerFeeGrant/${eth_pubkey}/${walletAddress}/${ethSigDetails.signatureHash}`
-          // GET request for amounts
-          const amounts = await fetch(feegrantAPI)
-          if (amounts.ok) {
-            const result = await amounts.json()
-            // handleHsDetails(result)
-            console.log('headstash details:', result)
-          } else {
-            console.error('cannot get headstash amounts:', amounts.status)
-          }
-        }
-      }
-    } catch (error) {
-      let errorMessage: string
-      if (error instanceof Error) {
-        errorMessage = error.message
-      } else {
-        errorMessage = JSON.stringify(error)
-        toast.error(errorMessage)
-      }
+      console.error('Error during handleEthSig:', error)
+      let errorMessage = error instanceof Error ? error.message : JSON.stringify(error)
+      toast.error(errorMessage)
     }
   }
   // TODO: get randomness from nois
@@ -264,12 +227,12 @@ function Headstash() {
         const tx = await secretjs.tx.broadcast([msgExecute], {
           gasLimit: Math.ceil(parseInt('000000') * 2),
           gasPriceInFeeDenom: parseInt('0.05'),
-          feeDenom: 'uscrt',
-          feeGranter: feegrantAddress
+          feeDenom: 'uscrt'
+          // feeGranter: feegrantAddress
         })
         console.log('Execution Result:', msgExecute)
         console.log('Execution Result:', tx.transactionHash)
-        toast.success(`View Tx Hash: ${tx.transactionHash}`)
+        toast.success(`View Tx Hash: ${getShortTxHash(tx.transactionHash)}`)
       }
     } catch (error) {
       let errorMessage: string
@@ -278,44 +241,6 @@ function Headstash() {
       } else {
         errorMessage = JSON.stringify(error)
         toast.error(errorMessage)
-      }
-    }
-  }
-
-  async function handleCreateViewingKey() {
-    try {
-      const { secretjs: importedSecretjs } = await WalletService.connectWallet(
-        walletAPIType,
-        apiUrl,
-        SECRET_TESTNET_CHAIN_ID
-      )
-      setSecretjs(importedSecretjs)
-      // setChainId(SECRET_TESTNET_CHAIN_ID)
-      // setApiStatus('online')
-      // setGasPrice('0.1')
-
-      let handleMsg = { create_viewing_key: { entropy: entropy } }
-      console.log('Creating viewing key')
-      const txExec = await secretjs.tx.snip20.createViewingKey(
-        {
-          sender: secretjs.address,
-          contract_address: ibcSecretTerpContract,
-          code_hash: codeHash,
-          msg: handleMsg
-        },
-        {
-          gasLimit: Math.ceil(50000 * 2),
-          gasPriceInFeeDenom: parseInt('0.1')
-        }
-      )
-      console.log(txExec)
-    } catch (error) {
-      let errorMessage: string
-      if (error instanceof Error) {
-        errorMessage = error.message
-      } else {
-        errorMessage = JSON.stringify(error)
-        console.log(errorMessage)
       }
     }
   }
@@ -371,24 +296,7 @@ function Headstash() {
             </CarouselItem>
             <CarouselItem>
               {' '}
-              <Title title={'3. Setup FeeGrant'} />
-              <center>
-                <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
-                  Bypass the fees required for your first few transactions on Secret Network.
-                </div>
-                <button
-                  className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
-                  onClick={setupFeeGrant}
-                  style={{ filter: ethSigDetails.signatureHash ? 'none' : 'blur(5px)' }}
-                  disabled={!walletAddress || !isConnected || !eth_pubkey || !ethSigDetails.signatureHash}
-                >
-                  Create Feegrant
-                </button>
-              </center>
-            </CarouselItem>
-            <CarouselItem>
-              {' '}
-              <Title title={'4. Claim Headstash'} />
+              <Title title={'3. Claim Headstash'} />
               <center>
                 <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
                   Claims your headstash privately. This requires your wallet to have SCRT tokens, to cover on-chain gas
@@ -397,11 +305,21 @@ function Headstash() {
                 <button
                   className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
                   onClick={claimHeadstashMsg}
-                  style={{ filter: ethSigDetails.signatureHash ? 'none' : 'blur(5px)' }}
-                  disabled={!walletAddress || !isConnected || !eth_pubkey || !ethSigDetails.signatureHash}
+                  style={{ filter: unEncryptedEthSig ? 'none' : 'blur(5px)' }}
+                  disabled={!walletAddress || !isConnected || !eth_pubkey || !unEncryptedEthSig}
                 >
                   Claim Headstash Airdrop
                 </button>
+                <p className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
+                  <span className="select-none">
+                    <span className="inline-block bg-emerald-500 dark:bg-emerald-800 text-white py-0.5 px-1.5 rounded lowercase font-semibold text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
+                      Protip
+                    </span>{' '}
+                    –{' '}
+                  </span>
+                  Bypass your first few transactions fees required on Secret Network.
+                </p>
+                <ActionableStatus />
               </center>
             </CarouselItem>
           </CarouselContent>
@@ -425,7 +343,7 @@ function Headstash() {
               </div>
               <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
                 FeeGrant:{' '}
-                {feegrantState === 'granted' ? (
+                {feeGrantStatus === 'success' ? (
                   <span style={{ color: 'green' }}>✓</span>
                 ) : (
                   <span style={{ color: 'red' }}>x</span>
@@ -435,7 +353,8 @@ function Headstash() {
             <div className="flex-1 text-right font-bold inline text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-teal-500">
               <br />
               {eth_pubkey}
-              {eth_pubkey !== '' && <p>{convertMicroDenomToDenomWithDecimals(amountDetails.amount, 6)}</p>}
+              {eth_pubkey !== '' && <p>{convertMicroDenomToDenomWithDecimals(amountDetails.amount, 6)}</p>}{' '}
+              {/* TODO: fix bug here clearning amount data upon wallet disconnect*/}
             </div>
           </div>
           <div className="flex-1 text-right" />

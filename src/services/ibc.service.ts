@@ -89,7 +89,7 @@ async function performIbcDeposit(
 
   const deposit: Deposit = token.deposits.filter((deposit: Deposit) => deposit.chain_name === props.chain.chain_name)[0]
 
-  const useSKIPRouting = deposit.needsSkip === true
+  const useSKIPRouting = deposit.needsSkip === false
 
   deposit_channel_id = deposit.channel_id || deposit_channel_id
   deposit_gas = deposit.gas || deposit_gas

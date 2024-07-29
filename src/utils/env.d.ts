@@ -6,6 +6,7 @@ interface ImportMetaEnv extends Readonly<Record<string, string>> {
   readonly VITE_OSMOSIS_CHAIN_ID: string
   readonly VITE_OSMOSIS_LCD_URL: string
   readonly HEADSTASH_API_URL: string
+  readonly ECIES_PUBKEY: string
 }
 
 interface ImportMeta {

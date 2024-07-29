@@ -4,7 +4,7 @@ import 'dotenv/config'
 import https from 'https'
 import fs from 'fs'
 import toobusy from 'toobusy-js'
-import { myFunction } from './utils/blockchain/verify.js'
+import { verifyEncryptedEthSig } from './utils/blockchain/verify.js'
 import {
   Wallet,
   SecretNetworkClient,
@@ -93,7 +93,7 @@ async function main() {
     res.json({ amount: entry.amount })
   })
 
-  app.get('/registerFeeGrant/:address/:cosmos/:signature', async (req, res) => {
+  app.get('/feeGrant/:address/:cosmos/:signature', async (req, res) => {
     let { address } = req.params
     let { cosmos } = req.params
     let { signature } = req.params
@@ -115,7 +115,7 @@ async function main() {
     }
 
     // verify eth_sig comes from address
-    let isCorrectSig = myFunction(address, cosmos, signature)
+    let isCorrectSig = verifyEncryptedEthSig(address, cosmos, signature)
     if (isCorrectSig.toLowerCase() !== address.toLowerCase()) {
       return res.status(404).json({ error: 'Unexpected Error' })
     }
@@ -172,18 +172,6 @@ async function main() {
   }
 }
 main()
-
-function isFeeGrantExpired(expirationTime: string, extraSeconds: number) {
-  // Parse the expiration time into a Date object
-  const expirationDate = new Date(expirationTime)
-
-  // Get the current time as a Date object
-  const currentDate = new Date()
-
-  // Add the extra number of seconds to the current time
-  const adjustedCurrentDate = new Date(currentDate.getTime() + extraSeconds)
-  return adjustedCurrentDate > expirationDate
-}
 
 // broadcast the feegrant msg
 let broadcastFeeGrant = async (secretjs: SecretNetworkClient, cosmos_addr: string) => {

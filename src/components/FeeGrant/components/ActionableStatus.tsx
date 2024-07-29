@@ -6,16 +6,17 @@ import { useSecretNetworkClientStore } from 'store/secretNetworkClient'
 import toast from 'react-hot-toast'
 
 export default function ActionableStatus() {
-  const { feeGrantStatus, requestFeeGrant, isConnected } = useSecretNetworkClientStore()
+  const { feeGrantStatus, requestFeeGrant, isConnected, unEncryptedEthSig } = useSecretNetworkClientStore()
 
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
   async function handleRequestFeeGrant() {
     setIsLoading(true)
-    const res = requestFeeGrant()
+    // console.log("encrypted:", encryptedEthSig.toString())
+    const res = requestFeeGrant(unEncryptedEthSig.toString())
     toast.promise(res, {
       loading: `Requesting Fee Grant`,
-      success: `Request for Fee Grant successful!`,
+      success: `Fee grant request recieved!`,
       error: `Request for Fee Grant failed!`
     })
     setIsLoading(false)

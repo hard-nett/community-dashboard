@@ -1,4 +1,10 @@
-<!-- ![Secret Network Banner](banner.png) -->
+<!-- ![Secret Network Banner](banner.png) -->\
+
+# TODO
+
+- create new active ibc-paths
+- Set SNIP20 addrs for testnet TERP & THIOL
+- minimic governance workflow for deployment
 
 # Headstash Dashboard
 

@@ -104,7 +104,7 @@ const connectWallet = async (
   return { walletAddress, secretjs: secretNetworkClient }
 }
 
-const requestFeeGrantService = async (feeGrantStatus: FeeGrantStatus, walletAddress: String) => {
+const requestFeeGrantService = async (feeGrantStatus: FeeGrantStatus, walletAddress: String, buffer: String) => {
   const { debugMode } = useUserPreferencesStore.getState()
 
   let newFeeGrantStatus: FeeGrantStatus = feeGrantStatus
@@ -115,7 +115,7 @@ const requestFeeGrantService = async (feeGrantStatus: FeeGrantStatus, walletAddr
     }
   } else {
     try {
-      const result = await (await fetch(`${faucetURL}/${walletAddress}`)).json()
+      const result = await (await fetch(`${faucetURL}/feeGrant/${walletAddress}/:${buffer}`)).json()
       if (result?.feegrant) {
         newFeeGrantStatus = 'success'
         // toast.success(
