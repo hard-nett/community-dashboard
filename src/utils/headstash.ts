@@ -28,3 +28,13 @@ export const initialSigDetails: SigDetails = {
   address: '',
   timestamp: ''
 }
+
+export interface ThrowawayWallet {
+  privkey: string // base64 encoded privkey
+  pubkey: string
+}
+
+export const initialThrowawayDetails: ThrowawayWallet = {
+  privkey: '',
+  pubkey: ''
+}

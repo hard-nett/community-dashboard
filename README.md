@@ -2,13 +2,15 @@
 
 # TODO
 
-- ui: add disposable wallet support: generate new wallet, store privkey in localstorage, or offline solution such as jackal.
-- ui: wrap headstash msgs with feegrant from Protocol owned ICA on Secret.
 - ui: display balance for each snip120 token included in headstash instance
 - ui: implement ibc-bloom logic
 - faucet: encrypt faucet tx with ecies [wasm-bindgen](https://github.com/ecies/rs-wasm) package
 - ui: completely remove any development logs to mimimize data leak
 - ui: enforce only one wallet (eth or solana) connected to site at a time.
+- throwaway-wallet: store offline solution such as jackal
+- throwaway-wallet: store privkey w/ timestamped/session index for retrival & pruning
+- ~~ui: wrap headstash msgs with feegrant from Protocol owned ICA on Secret.~~
+- ~~ui: add disposable wallet support: generate new wallet, store privkey in localstorage,~~
 
 # Headstash Dashboard
 

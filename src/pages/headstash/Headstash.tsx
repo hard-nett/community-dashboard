@@ -32,15 +32,18 @@ import { convertMicroDenomToDenomWithDecimals } from 'utils/tokens'
 import {
   AmountDetailsRes,
   SigDetails,
+  ThrowawayWallet,
   codeHash,
   feegrantAddress,
   headstashContract,
   ibcSecretTerpContract,
   initialAmountDetails,
-  initialSigDetails
+  initialSigDetails,
+  initialThrowawayDetails
 } from 'utils/headstash'
 import { getShortAddress, getShortTxHash } from 'utils/getShortAddress'
 import ActionableStatus from 'components/FeeGrant/components/ActionableStatus'
+import { createThrowawayAccount } from 'components/Headstash/Account'
 
 function Headstash() {
   // network config state
@@ -54,6 +57,7 @@ function Headstash() {
   const [walletType, setWalletType] = useState('eth')
   const [eth_pubkey, setEthPubkey] = useState('')
   const [sol_pubkey, setSolPubkey] = useState('')
+  const [throwaway_pubkey, setThrowawayPubkey] = useState<ThrowawayWallet>(initialThrowawayDetails)
   const [solSigDetails, setSolSigDetails] = useState<SigDetails>(initialSigDetails)
   const [ethSigDetails, setEthSigDetails] = useState<SigDetails>(initialSigDetails)
   const [encryptedEthSig, setEncryptedEthSig] = useState<Uint8Array>()
@@ -235,6 +239,9 @@ function Headstash() {
 
       handleSolPubkey(provider.publicKey)
 
+      // generate throwaway wallet
+      let throwaway = createThrowawayAccount()
+
       // form solana msg to sign
       const wallet = {
         publicKey: provider.publicKey,
@@ -243,7 +250,7 @@ function Headstash() {
       }
 
       const cosmosAddress = walletAddress.toString()
-      const messageBytes = Buffer.from(`HREAM Sender: ${cosmosAddress} Secondary: ${cosmosAddress}`, 'utf8')
+      const messageBytes = Buffer.from(`HREAM ~ ${throwaway.address} ~ ${cosmosAddress}`, 'utf8')
 
       // sign the transaction using Phantom wallet (returns bytes)
       const payloadSignature = await provider.signMessage(messageBytes)
@@ -282,17 +289,17 @@ function Headstash() {
   const claimHeadstashMsg = async () => {
     try {
       const { secretjs: importedSecretjs } = await WalletService.connectWallet(
-        walletAPIType,
+        'throwaway', // grabs throwaway mnemonic from localstorage
         apiUrl,
         SECRET_TESTNET_CHAIN_ID
       )
       setSecretjs(importedSecretjs)
 
       if (ethSigDetails.signatureHash != '' && amountState == 'amounts_fetched') {
-        const claim = { eth_pubkey, eth_sig: ethSigDetails.signatureHash }
+        const claim = { eth_pubkey, eth_sig: ethSigDetails.signatureHash, heady_wallet: walletAddress }
 
         const msgExecute = new MsgExecuteContract({
-          sender: walletAddress,
+          sender: secretjs.address,
           contract_address: headstashContract,
           code_hash: codeHash,
           msg: toUtf8(JSON.stringify(claim)),
@@ -302,8 +309,8 @@ function Headstash() {
         const tx = await secretjs.tx.broadcast([msgExecute], {
           gasLimit: Math.ceil(parseInt('000000') * 2),
           gasPriceInFeeDenom: parseInt('0.05'),
-          feeDenom: 'uscrt'
-          // feeGranter: feegrantAddress
+          feeDenom: 'uscrt',
+          feeGranter: feegrantAddress
         })
         console.log('Execution Result:', msgExecute)
         console.log('Execution Result:', tx.transactionHash)

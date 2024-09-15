@@ -1,4 +1,4 @@
-import { SecretNetworkClient } from 'secretjs'
+import { SecretNetworkClient, Wallet } from 'secretjs'
 import { FeeGrantStatus } from 'types/FeeGrantStatus'
 import { Nullable } from 'types/Nullable'
 import {
@@ -88,6 +88,26 @@ const connectLeap = async (lcd: string, chainID: string) => {
     return { walletAddress, pubkey, secretjs }
   }
 }
+const connectThrowaway = async (lcd: string, chainID: string) => {
+  // get throwaway privkey from localstorage
+  const item = localStorage.getItem('throwawayPrivateKey')
+
+  let mnemonic = atob(item)
+  const wallet = new Wallet(mnemonic)
+
+  let walletAddress = wallet.address
+  let pubkey = wallet.publicKey
+
+  const secretjs: SecretNetworkClient = new SecretNetworkClient({
+    url: lcd,
+    chainId: chainID,
+    wallet,
+    walletAddress,
+    encryptionUtils: window.leap.getEnigmaUtils(chainID)
+  })
+
+  return { walletAddress, pubkey, secretjs }
+}
 
 const connectWallet = async (
   walletAPIType: WalletAPIType = 'keplr',
@@ -98,6 +118,8 @@ const connectWallet = async (
   let secretNetworkClient: SecretNetworkClient
   if (walletAPIType === 'leap') {
     ;({ walletAddress, secretjs: secretNetworkClient } = await connectLeap(lcd, chainID))
+  } else if (walletAPIType === 'throwaway') {
+    ;({ walletAddress, secretjs: secretNetworkClient } = await connectThrowaway(lcd, chainID))
   } else {
     ;({ walletAddress, secretjs: secretNetworkClient } = await connectKeplr(lcd, chainID))
   }
