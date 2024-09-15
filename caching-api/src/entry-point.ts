@@ -3,7 +3,9 @@ import express from 'express'
 import 'dotenv/config'
 import https from 'https'
 import fs from 'fs'
+import decode from 'bs58'
 import toobusy from 'toobusy-js'
+import secp256k1 from 'secp256k1'
 import { verifyEncryptedEthSig } from './utils/blockchain/verify.js'
 import {
   Wallet,
@@ -13,9 +15,14 @@ import {
   fromUtf8,
   MsgExecuteContractResponse,
   validateAddress,
-  BroadcastMode
+  BroadcastMode,
+  MsgExec,
+  MsgGrantAllowance
 } from 'secretjs'
 
+import nacl from 'tweetnacl'
+
+import * as solana from '@solana/web3.js'
 // endpoint stuff
 const PORT = process.env.PORT || '300'
 const SECRET_CHAIN_ID = process.env.CHAIN_ID || 'pulsar-3'
@@ -103,7 +110,7 @@ async function main() {
     const entry = amountData.find((item: { address: string }) => item.address.toLowerCase().trim() === address)
 
     if (!entry) {
-      return res.status(404).json({ error: '#01 eth_pubkey not included in airdrop' })
+      return res.status(404).json({ error: 'pubkey not included in airdrop' })
     }
 
     // verify the cosmos address
@@ -114,10 +121,43 @@ async function main() {
       return res.status(400).json({ error: 'Address is invalid' })
     }
 
-    // verify eth_sig comes from address
-    let isCorrectSig = verifyEncryptedEthSig(address, cosmos, signature)
-    if (isCorrectSig.toLowerCase() !== address.toLowerCase()) {
-      return res.status(404).json({ error: 'Unexpected Error' })
+    if (address.startsWith('0x1')) {
+      // verify signature for eth pubkey
+      let isCorrectSig = verifyEncryptedEthSig(address, cosmos, signature)
+      if (isCorrectSig.toLowerCase() !== address.toLowerCase()) {
+        return res.status(404).json({ error: 'Unexpected Error' })
+      }
+    } else if (!address.startsWith('secret')) {
+      try {
+        const verifySignature = (signature: string, publicKey: string, signedContent: string) => {
+          // Convert base64 encoded signature to bytes
+          const signatureBytes = Buffer.from(signature, 'base64')
+          const messageBytes = Buffer.from(signedContent, 'base64')
+          const publicKeyBytes = decode.decode(publicKey)
+
+          const pubKey = new solana.PublicKey(publicKey)
+
+          const result = nacl.sign.detached.verify(
+            messageBytes, // bytes of msg signed
+            signatureBytes, // signature bytes
+            publicKeyBytes // pubkey bytes Base58
+          )
+
+          verifySignature(signature, address, signature)
+          if (!result) {
+            throw new Error('Invalid Solana signature')
+          }
+        }
+      } catch (error) {
+        return res.status(401).json({ error: 'Invalid Solana signature' })
+      }
+    } else {
+      // verify signature for cosmos pubkey
+      try {
+        return res.status(420).json({ error: 'Unsupported feature currently' })
+      } catch {
+        return res.status(401).json({ error: 'Invalid Cosmos signature' })
+      }
     }
 
     // verify cosmos wallet does not already have balance
@@ -163,27 +203,32 @@ async function main() {
     }
   })
 
-  if (process.env.EXECUTION == 'PRODUCTION') {
-    const options = {
-      cert: fs.readFileSync('/home/illiquidly/identity/fullchain.pem'),
-      key: fs.readFileSync('/home/illiquidly/identity/privkey.pem')
-    }
-    https.createServer(options, app).listen(parseInt(PORT))
-  }
+  // if (process.env.EXECUTION == 'PRODUCTION') {
+  //   const options = {
+  //     cert: fs.readFileSync('/home/illiquidly/identity/fullchain.pem'),
+  //     key: fs.readFileSync('/home/illiquidly/identity/privkey.pem')
+  //   }
+  //   https.createServer(options, app).listen(parseInt(PORT))
+  // }
 }
 main()
 
 // broadcast the feegrant msg
 let broadcastFeeGrant = async (secretjs: SecretNetworkClient, cosmos_addr: string) => {
-  let msg = await secretjs.tx.feegrant.grantAllowance(
-    {
-      granter: wallet.address,
-      grantee: cosmos_addr,
-      allowance: {
-        allowance: { spend_limit: [{ denom: faucetDenom, amount: faucetAmount }] },
-        allowed_messages: ['/secret.compute.v1beta1.MsgExecuteContract']
-      }
-    },
+  const msgGrant = new MsgGrantAllowance({
+    granter: wallet.address,
+    grantee: cosmos_addr,
+    allowance: {
+      allowance: { spend_limit: [{ denom: faucetDenom, amount: faucetAmount }] },
+      allowed_messages: ['/secret.compute.v1beta1.MsgExecuteContract']
+    }
+  })
+
+  //define the authz msg
+  const msgExec = new MsgExec({ grantee: cosmos_addr, msgs: [msgGrant] })
+  const tx = await secretjs.tx.broadcast(
+    [msgExec],
+
     {
       memo: memo,
       broadcastCheckIntervalMs: 100,
@@ -194,11 +239,11 @@ let broadcastFeeGrant = async (secretjs: SecretNetworkClient, cosmos_addr: strin
     }
   )
 
-  if (msg) {
-    if (msg.code != 0) {
-      return msg
+  if (tx) {
+    if (tx.code != 0) {
+      return tx
     }
-    return msg
+    return tx
   }
-  return msg
+  return tx
 }

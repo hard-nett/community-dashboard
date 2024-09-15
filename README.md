@@ -2,17 +2,38 @@
 
 # TODO
 
-- create new active ibc-paths
-- Set SNIP20 addrs for testnet TERP & THIOL
-- minimic governance workflow for deployment
+- ui: add disposable wallet support: generate new wallet, store privkey in localstorage, or offline solution such as jackal.
+- ui: wrap headstash msgs with feegrant from Protocol owned ICA on Secret.
+- ui: display balance for each snip120 token included in headstash instance
+- ui: implement ibc-bloom logic
+- faucet: encrypt faucet tx with ecies [wasm-bindgen](https://github.com/ecies/rs-wasm) package
+- ui: completely remove any development logs to mimimize data leak
+- ui: enforce only one wallet (eth or solana) connected to site at a time.
 
 # Headstash Dashboard
 
-Headstash Dashboard is an entry point for new users into the Cosmos Ecosystem. Features include a Dashboard UI for Secret Network data, IBC Transfer to and from Secret, a Wrap/Unwrap interface, a list of all active Secret dApps, a link collection to useful secret tools and more.
+Headstash Dashboard is an entry point for new users into the Cosmos Ecosystem. Features include a Dashboard UI to claim a headstash distribution they are eligible for, IBC Transfer to and from Secret, a Wrap/Unwrap interface, a list of all active Secret dApps, a link collection to useful secret tools and more.
 
-## System Requirements
+## Headstash LifeCycle
 
-- [Node.js 20 LTS](https://nodejs.org/)
+### Connect Eligible Wallet
+
+### Generate Throwaway Wallet
+
+### Verify Ownership
+
+### Register For FeeGrant
+
+### Claim Headstash
+
+### Privately IBC Transfer tokens back to Terp Network
+
+## Future Features
+
+- display list of available headstashes
+- create new headstash
+- account profile
+- verification tooling
 
 ## Setup
 

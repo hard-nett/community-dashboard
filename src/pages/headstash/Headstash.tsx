@@ -1,16 +1,11 @@
 import { Helmet } from 'react-helmet-async'
-import {
-  bridgeJsonLdSchema,
-  bridgePageDescription,
-  headstashPageTitle,
-  randomPadding,
-  trackMixPanelEvent
-} from 'utils/commons'
-import { useSecretNetworkClientStore } from 'store/secretNetworkClient'
-import { useEffect, useState, useContext } from 'react'
+import React, { useEffect, useState } from 'react'
+
 import toast from 'react-hot-toast'
-import { scrtToken } from 'utils/tokens'
-import { ThemeContext } from 'context/ThemeContext'
+
+import { bridgeJsonLdSchema, bridgePageDescription, headstashPageTitle, randomPadding } from 'utils/commons'
+import { useSecretNetworkClientStore } from 'store/secretNetworkClient'
+
 import { useIsClient } from 'hooks/useIsClient'
 import Title from 'components/Title'
 import MetamaskConnectButton from 'components/Wallet/metamask-connect-button'
@@ -25,7 +20,6 @@ import {
 import { Nullable } from 'types/Nullable'
 import { WalletService } from 'services/wallet.service'
 import { SECRET_TESTNET_CHAIN_ID, SECRET_TESTNET_LCD } from 'utils/config'
-import { createAccountObject } from 'components/Headstash/Account'
 import {
   Carousel,
   CarouselApi,
@@ -47,12 +41,6 @@ import {
 } from 'utils/headstash'
 import { getShortAddress, getShortTxHash } from 'utils/getShortAddress'
 import ActionableStatus from 'components/FeeGrant/components/ActionableStatus'
-import { encrypt } from 'eciesjs'
-import crypto from 'crypto'
-import encrypt_eth_signature from 'utils/ecies'
-import { Link } from 'react-router-dom'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faShuffle } from '@fortawesome/free-solid-svg-icons'
 
 function Headstash() {
   // network config state
@@ -60,17 +48,13 @@ function Headstash() {
   const [apiUrl, setApiUrl] = useState<string>(SECRET_TESTNET_LCD)
   const [isVerified, setIsVerified] = useState(false)
   const [isloading, setLoading] = useState(false)
-  const {
-    walletAddress,
-    walletAPIType,
-    isConnected,
-    getBalance,
-    unEncryptedEthSig,
-    setUnencryptedEthSig,
-    feeGrantStatus
-  } = useSecretNetworkClientStore()
-  // eth pubkey state
+  const { walletAddress, walletAPIType, isConnected, unEncryptedEthSig, setUnencryptedEthSig, feeGrantStatus } =
+    useSecretNetworkClientStore()
+  // pubkey states (eth, sol)
+  const [walletType, setWalletType] = useState('eth')
   const [eth_pubkey, setEthPubkey] = useState('')
+  const [sol_pubkey, setSolPubkey] = useState('')
+  const [solSigDetails, setSolSigDetails] = useState<SigDetails>(initialSigDetails)
   const [ethSigDetails, setEthSigDetails] = useState<SigDetails>(initialSigDetails)
   const [encryptedEthSig, setEncryptedEthSig] = useState<Uint8Array>()
   // airdrop amount state
@@ -80,22 +64,28 @@ function Headstash() {
   // feegrant state
   type FeeGrantState = 'loading' | 'already_granted' | 'not_requested' | 'granted' | 'not_granted'
 
-  // temporary client for testing signing key, will migrate to use secretNetworkClient
   const [api, setApi] = useState<CarouselApi>()
 
   useEffect(() => {
     const handleWalletDisconnect = () => {
       setEthPubkey('')
+      setSolPubkey('')
       handleHsDetails(initialAmountDetails, 'not_fetched_yet')
       setEthPubkey('')
+      setSolPubkey('')
     }
     // Check if window.ethereum is available
     if (eth_pubkey != '') {
       // Listen for wallet disconnect events
       ;(window as any).ethereum.on('disconnect', handleWalletDisconnect)
     }
+    if (sol_pubkey != '') {
+      // Listen for solana wallet disconnect events
+      ;(window as any).solana.on('disconnect', handleWalletDisconnect)
+    }
 
     console.log(eth_pubkey)
+    console.log(sol_pubkey)
     console.log('headstash detials:', amountDetails.amount)
     // clean event listener on unmount
     return () => {
@@ -105,10 +95,16 @@ function Headstash() {
     }
   }, [eth_pubkey])
 
-  // set eth_pubkey
+  // handle eth wallet connect
   const handleEthPubkey = (eth_pubkey: string) => {
     setEthPubkey(eth_pubkey)
   }
+  // handle solana wallet connect
+  const handleSolPubkey = (sol_pubkey: string) => {
+    // set pubkey
+    setSolPubkey(sol_pubkey)
+  }
+
   // set headstash detials
   const handleHsDetails = (amountDetails: AmountDetailsRes, state: FetchAmountState) => {
     console.log(amountDetails)
@@ -120,18 +116,21 @@ function Headstash() {
   // fetch headstash data
   useEffect(() => {
     // Define a function to fetch the headstash amount
-    const fetchHeadstash = async () => {
+    const fetchHeadstash = async (pubkey: string) => {
       try {
         // Check if eth_pubkey exists
-        if (!eth_pubkey) {
+        if (String(pubkey).startsWith('0x1') && !eth_pubkey) {
           toast.error('eth_pubkey is required')
           console.error('eth_pubkey is required')
           return
+        } else if (!eth_pubkey && !sol_pubkey) {
+          toast.error('sol_pubkey is required')
+          console.error('sol_pubkey is required')
         }
 
         // Set loading state to true
         setLoading(true)
-        const headstashDetailsAPI = `http://localhost:3001/getHeadstash/${eth_pubkey}`
+        const headstashDetailsAPI = `http://localhost:3001/getHeadstash/${pubkey}`
 
         // GET request for amounts
         const amounts = await fetch(headstashDetailsAPI)
@@ -152,9 +151,16 @@ function Headstash() {
     }
     // Call the fetchHeadstash function when eth_pubkey changes
     if (eth_pubkey) {
-      fetchHeadstash()
+      fetchHeadstash(eth_pubkey).then(() => {
+        handleEthSig()
+      })
     }
-  }, [eth_pubkey])
+    if (sol_pubkey != '' && amountState == 'not_fetched_yet') {
+      fetchHeadstash(sol_pubkey).then(() => {
+        handleSolanaSig()
+      })
+    }
+  }, [eth_pubkey, sol_pubkey])
 
   // create eth sig
   const handleEthSig = async () => {
@@ -203,6 +209,75 @@ function Headstash() {
   }
   // TODO: get randomness from nois
   const entropy = 'eretskeretjableret'
+
+  /// SOLANA UTILS
+
+  // get solana wallet provider from browser
+  const getProvider = () => {
+    if ('solana' in window) {
+      const provider = window.solana as any
+      if (provider.isPhantom) {
+        return provider
+      }
+    }
+    window.open('https://phantom.app/', '_blank')
+  }
+
+  const handleSolanaSig = async () => {
+    // connects, checks eligiblility, prompts signature
+    try {
+      const provider = getProvider()
+      if (!provider) {
+        console.error('Phantom wallet not found')
+      } else {
+        await provider.connect() // Connect to the wallet
+      }
+
+      handleSolPubkey(provider.publicKey)
+
+      // form solana msg to sign
+      const wallet = {
+        publicKey: provider.publicKey,
+        signTransaction: provider.signTransaction.bind(provider),
+        signAllTransactions: provider.signAllTransactions.bind(provider)
+      }
+
+      const cosmosAddress = walletAddress.toString()
+      const messageBytes = Buffer.from(`HREAM Sender: ${cosmosAddress} Secondary: ${cosmosAddress}`, 'utf8')
+
+      // sign the transaction using Phantom wallet (returns bytes)
+      const payloadSignature = await provider.signMessage(messageBytes)
+
+      // return expected sig response type
+      const sig: SigDetails = {
+        message: messageBytes.toString('base64'),
+        signatureHash: payloadSignature.signature.toString('base64'),
+        address: payloadSignature.publicKey,
+        timestamp: new Date().toISOString()
+      }
+      console.log('Signature object:', sig)
+      setSolSigDetails(sig)
+      return sig
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  const handleSolanaDisconnect = async () => {
+    // get solana wallet provider from browser
+    const provider = getProvider()
+
+    if (provider) {
+      try {
+        // Disconnect from Phantom wallet
+        await provider.disconnect()
+        // Update state to reflect disconnect
+        setSolPubkey('')
+      } catch (error) {
+        console.error('Error disconnecting from Phantom wallet', error)
+      }
+    }
+  }
 
   const claimHeadstashMsg = async () => {
     try {
@@ -271,35 +346,49 @@ function Headstash() {
             <CarouselItem className="basis">
               <Title title={'1. Connect Wallets'} />
               <center>
-                <MetamaskConnectButton handleEthPubkey={handleEthPubkey} />
+                <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
+                  First, we need to generate an offline signature from Metamask or Phantom. This signature does not
+                  require any gas payments, does not interact, grant authorization or involve funds held by the
+                  accounts, and verifies only you can claim your private headstash.
+                </div>
+                {!sol_pubkey && <MetamaskConnectButton handleEthPubkey={handleEthPubkey} />}
                 <br />
+                {!eth_pubkey && (
+                  <div>
+                    <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">Solana</div>
+                    {sol_pubkey != '' ? (
+                      <button
+                        style={{}}
+                        className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
+                        onClick={handleSolanaDisconnect}
+                      >
+                        Disconnect Phantom Wallet
+                      </button>
+                    ) : (
+                      <button
+                        style={{}}
+                        className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
+                        onClick={handleSolanaSig}
+                      >
+                        {sol_pubkey.length > 0 ? (
+                          `${sol_pubkey.substring(0, 6)}...${sol_pubkey.substring(38)}`
+                        ) : (
+                          <span>Check Eligibility And Claim Headstash With Phantom Wallet</span>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
                 <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">Cosmos Wallet</div>
                 <Wallet />
               </center>
             </CarouselItem>
-            <CarouselItem className="basis">
-              <Title title={'2. Verify Metamask Ownership'} />
-              <center>
-                <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
-                  Request an offline signature from Metamask of your public cosmos wallet address. This signature does
-                  not require any gas payments, and verifies only you can claim your private headstash.
-                </div>
-                <button
-                  className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
-                  onClick={handleEthSig}
-                  style={{ filter: eth_pubkey ? 'none' : 'blur(5px)' }}
-                  disabled={!walletAddress || !isConnected || !eth_pubkey || isVerified}
-                >
-                  Sign & Verify
-                </button>
-              </center>
-            </CarouselItem>
             <CarouselItem>
               {' '}
-              <Title title={'3. Claim Headstash'} />
+              <Title title={'2. Claim Headstash'} />
               <center>
                 <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
-                  Claims your headstash privately. This requires your wallet to have SCRT tokens, to cover on-chain gas
+                  Claims your headstash privately. This does requires SCRT tokens, to pay for on-chain transaction gas
                   fees.
                 </div>
                 <button
@@ -312,14 +401,10 @@ function Headstash() {
                 </button>
                 <p className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
                   <span className="select-none">
-                    <span className="inline-block bg-emerald-500 dark:bg-emerald-800 text-white py-0.5 px-1.5 rounded lowercase font-semibold text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
-                      Protip
-                    </span>{' '}
-                    –{' '}
+                    <ActionableStatus /> –{' '}
                   </span>
                   Bypass your first few transactions fees required on Secret Network.
                 </p>
-                <ActionableStatus />
               </center>
             </CarouselItem>
           </CarouselContent>
@@ -353,7 +438,7 @@ function Headstash() {
             <div className="flex-1 text-right font-bold inline text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-teal-500">
               <br />
               {eth_pubkey}
-              {eth_pubkey !== '' && <p>{convertMicroDenomToDenomWithDecimals(amountDetails.amount, 6)}</p>}{' '}
+              <p>{convertMicroDenomToDenomWithDecimals(amountDetails.amount, 6)}</p>{' '}
               {/* TODO: fix bug here clearning amount data upon wallet disconnect*/}
             </div>
           </div>
