@@ -55,7 +55,7 @@ function Modal({ size = 'sm', ...props }: Props) {
   return (
     <>
       {/* Outer */}
-      <div className="z-50 fixed inset-0 bg-black/80 dark:text-white">
+      <div className="z-50  inset-0  dark:text-white">
         <div className="absolute inset-0 overflow-y-scroll">
           <div className={`mt-4 md:mt-24 mb-24 ${sizeClass()} mx-auto`}>
             {/* Inner */}

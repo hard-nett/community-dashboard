@@ -70,7 +70,6 @@ const MetamaskConnectButton: React.FC<MetamaskConnectButtonProps> = ({ handleEth
 
   return (
     <div>
-      <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">Metamask</div>
       {eth_pubkey != '' ? (
         <button
           style={{}}
