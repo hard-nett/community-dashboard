@@ -12,16 +12,23 @@ export interface SigDetails {
   timestamp: string
 }
 
-export interface AmountDetailsRes {
+export type HeadstashItem = {
+  contract: string
   amount: string
-  // index: any
-  // proofs: string[]
 }
-export const initialAmountDetails: AmountDetailsRes = {
-  amount: ''
-  // index: null,
-  // proofs: ['']
+
+export type HeadstashAllocation = {
+  address: string
+  headstash: HeadstashItem[]
 }
+
+export type HeadstashAllocations = HeadstashAllocation[]
+
+export const initialAmountDetails: HeadstashAllocation = {
+  address: '',
+  headstash: []
+}
+
 export const initialSigDetails: SigDetails = {
   message: '',
   signatureHash: null,

@@ -271,8 +271,18 @@ function Dashboard() {
 
         <div className="grid grid-cols-12 gap-4">
           {/* Item */}
-          <div className="col-span-12 rounded-xl bg-white border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 p-4"></div>
-          <div className="col-span-12 rounded-xl bg-white border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 p-4"></div>
+          <div className="col-span-12 rounded-xl bg-white border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 p-4">
+            <Title title={'IBC Bloom '} />
+            <div className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
+              IBC bloom is an on-chain process that powers claiming & transferring your newly owned tokens from a
+              headstash distribution, obfuscating your public wallet even after leaving the Secret Networks trusted
+              execution environment.
+              <br />
+              <br />
+              To run an IBC bloom, generate an offline signature from the destination wallet address, with the pubkey
+              from the headstash that has already claimed their distribution.
+            </div>
+          </div>
           {/* Item */}
           {/* <div className='col-span-12 xl:col-span-6 bg-neutral-800 p-4 rounded-xl'>
               <PriceChart />
