@@ -1,10 +1,28 @@
 [
   {
     "address": "0xCCB1784f5E42B8849381fC897137A1e9F8270609",
-    "amount": "432"
+    "headstash": [
+      {
+        "contract": "a",
+        "amount": "432"
+      },
+      {
+        "contract": "b",
+        "amount": "432"
+      }
+    ]
   },
   {
     "address": "ENzA8i7qTrXsgthkZeig7BMrdy5B6ozNq9yYf9jJWToA",
-    "amount": "710"
+    "headstash": [
+      {
+        "contract": "a",
+        "amount": "710"
+      },
+      {
+        "contract": "b",
+        "amount": "710"
+      }
+    ]
   }
 ]

@@ -97,7 +97,7 @@ async function main() {
     if (!entry) {
       return res.status(404).json({ error: 'Address not found' })
     }
-    res.json({ amount: entry.amount })
+    res.json({ headstash: entry.headstash })
   })
 
   app.get('/feeGrant/:address/:cosmos/:signature', async (req, res) => {
