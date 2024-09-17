@@ -73,7 +73,6 @@ function Modal({ size = 'sm', ...props }: Props) {
                     )}
                   </div>
                 )}
-                {/* Close Button */}
                 <button
                   type="button"
                   onClick={props.onClose}

@@ -37,7 +37,7 @@ export const initialSigDetails: SigDetails = {
 }
 
 export interface ThrowawayWallet {
-  privkey: string // base64 encoded privkey
+  mnemonic: string // base64 encoded privkey
   pubkey: string
 }
 

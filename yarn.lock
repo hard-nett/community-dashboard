@@ -4322,6 +4322,11 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
+ecies-wasm@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/ecies-wasm/-/ecies-wasm-0.2.0.tgz#b74bad0ede1d171c6a03b0e1f3636dca5b575fdb"
+  integrity sha512-T0wkoz2iOu3IN0wugO3gzCn3ADAafA8FRDQUWWST31InPWlUSvH5JH5akegAZw48or1kwQsWE5jGiNqh5woxhg==
+
 eciesjs@^0.3.15:
   version "0.3.19"
   resolved "https://registry.yarnpkg.com/eciesjs/-/eciesjs-0.3.19.tgz#a22e9e1efe3fdedec02c828e2632ae0d4a073676"

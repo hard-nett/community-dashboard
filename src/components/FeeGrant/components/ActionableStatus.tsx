@@ -5,6 +5,11 @@ import Button from 'components/UI/Button/Button'
 import { useSecretNetworkClientStore } from 'store/secretNetworkClient'
 import toast from 'react-hot-toast'
 
+// ecies wasm
+import init, * as ecies from 'ecies-wasm'
+init()
+
+// Used to handle encrypted feegrant-requests
 export default function ActionableStatus() {
   const { feeGrantStatus, requestFeeGrant, isConnected, unEncryptedEthSig } = useSecretNetworkClientStore()
 
@@ -12,8 +17,16 @@ export default function ActionableStatus() {
 
   async function handleRequestFeeGrant() {
     setIsLoading(true)
-    // console.log("encrypted:", encryptedEthSig.toString())
-    const res = requestFeeGrant(unEncryptedEthSig.toString())
+
+    // init ecies
+    init()
+    const encoder = new TextEncoder()
+    // encrypt the request
+    const encrypted = ecies.encrypt(encoder.encode(import.meta.env.ECIES_PUBKEY), encoder.encode(unEncryptedEthSig))
+    let hash = Buffer.from(encrypted).toString('hex')
+
+    // console.log("encrypted:", hash.toString())
+    const res = requestFeeGrant(hash)
     toast.promise(res, {
       loading: `Requesting Fee Grant`,
       success: `Fee grant request recieved!`,

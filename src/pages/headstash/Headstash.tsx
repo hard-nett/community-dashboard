@@ -60,6 +60,7 @@ function Headstash() {
   const [walletType, setWalletType] = useState('eth')
   const [eth_pubkey, setEthPubkey] = useState('')
   const [sol_pubkey, setSolPubkey] = useState('')
+  const [exporting_mnemonic, setExportingMnemonic] = useState(false)
 
   const [modal_state, setModalState] = useState(false)
   const [gen_sig, setSignatureState] = useState(false)
@@ -102,13 +103,14 @@ function Headstash() {
   }, [eth_pubkey])
 
   // handle eth wallet connect
-  const handleEthPubkey = (eth_pubkey: string) => {
+  const handleEthPubkey = (eth_pubkey: string, throwaway: ThrowawayWallet) => {
     if (eth_pubkey == '') {
       setSignatureState(false)
       handleHsDetails(initialAmountDetails, 'not_fetched_yet')
       setSigDetails(initialSigDetails)
     }
     setEthPubkey(eth_pubkey)
+    setThrowawayPubkey(throwaway)
   }
   // handle solana wallet connect
   const handleSolPubkey = (sol_pubkey: string) => {
@@ -129,6 +131,14 @@ function Headstash() {
 
   // fetch headstash data
   useEffect(() => {
+    const retrieveThrowaway = async () => {
+      let wallet = await WalletService.getLocalStorageMnemonicLOL(`throwawayPrivateKey-${eth_pubkey.slice(10)}`)
+      let throwaway: ThrowawayWallet = {
+        mnemonic: wallet.mnemonic,
+        pubkey: wallet.address
+      }
+      setThrowawayPubkey(throwaway)
+    }
     const fetchHeadstash = async (pubkey: string) => {
       try {
         if (String(pubkey).startsWith('0x1') && !eth_pubkey) {
@@ -167,6 +177,10 @@ function Headstash() {
         handleSigModal().then(() => {})
       })
     }
+
+    if (exporting_mnemonic) {
+      retrieveThrowaway()
+    }
   }, [eth_pubkey, sol_pubkey])
 
   // create eth sig
@@ -179,10 +193,14 @@ function Headstash() {
         return
       }
 
+      if (!amountDetails.headstash.length) {
+        throw new Error('Not eligible for this headstash')
+      }
+
       // define the msg to sign
       if (walletAddress !== undefined) {
         const cosmosAddress = walletAddress.toString()
-        let throwaway = createThrowawayAccount()
+        let throwaway = createThrowawayAccount(eth_pubkey)
         const from = eth_pubkey
 
         const msg = `0x${Buffer.from(`HREAM ~ ${throwaway.address} ~ ${cosmosAddress}`, 'utf8').toString('hex')}`
@@ -228,21 +246,6 @@ function Headstash() {
     window.open('https://phantom.app/', '_blank')
   }
 
-  const handleSolanaDisconnect = async () => {
-    // get solana wallet provider from browser
-    const provider = getSolProvider()
-    try {
-      await provider.disconnect()
-      // Update state to reflect disconnect
-      setSolPubkey('')
-      setAmountDetails(initialAmountDetails)
-      setAmountState('not_fetched_yet')
-      setSigDetails(initialSigDetails)
-    } catch (error) {
-      console.error('Error disconnecting from Phantom wallet', error)
-    }
-  }
-
   const handleSolanaSig = async () => {
     // connects, checks eligiblility, prompts signature
     try {
@@ -252,8 +255,14 @@ function Headstash() {
       } else {
         await provider.connect()
       }
-
       handleSolPubkey(provider.publicKey)
+      // get throwaway wallet
+      let wallet = await WalletService.getLocalStorageMnemonicLOL(provider.publicKey)
+      let throwaway: ThrowawayWallet = {
+        mnemonic: wallet.mnemonic,
+        pubkey: wallet.address
+      }
+      setThrowawayPubkey(throwaway)
       setModalState(true)
     } catch (error) {
       console.error(error)
@@ -262,7 +271,12 @@ function Headstash() {
 
   const generateAndSignPayload = async (provider: any) => {
     // generate throwaway wallet
-    let throwaway = createThrowawayAccount()
+    let throwaway = createThrowawayAccount(sol_pubkey)
+
+    if (amountDetails.headstash.length == 0) {
+      toast.error('Not eligible for this headstash')
+      throw new Error('Not eligible!')
+    }
 
     // form solana msg to sign
     const cosmosAddress = walletAddress.toString()
@@ -282,6 +296,21 @@ function Headstash() {
     setSigDetails(sig)
     setSigDetails(sig)
     return sig
+  }
+
+  const handleSolanaDisconnect = async () => {
+    // get solana wallet provider from browser
+    const provider = getSolProvider()
+    try {
+      await provider.disconnect()
+      // Update state to reflect disconnect
+      setSolPubkey('')
+      setAmountDetails(initialAmountDetails)
+      setAmountState('not_fetched_yet')
+      setSigDetails(initialSigDetails)
+    } catch (error) {
+      console.error('Error disconnecting from Phantom wallet', error)
+    }
   }
 
   const claimHeadstashMsg = async () => {
@@ -407,10 +436,17 @@ function Headstash() {
         <Carousel setApi={setApi}>
           <CarouselContent>
             {modal_state && (
-              <Modal size="2xl" onClose={undefined} isOpen={modal_state}>
-                <h2>Confirm Your Throwaway Wallet</h2>
-                <p>Are you sure you are you want to proceed using?</p>
+              <Modal
+                title="Confirm Throwaway Wallet"
+                size="2xl"
+                onClose={() => {
+                  setModalState(false)
+                }}
+                isOpen={modal_state}
+              >
+                <p>Are you sure you are you want to proceed using {throwaway_pubkey.pubkey.substring(0, 10)}?</p>
                 <button
+                  className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
                   onClick={() => {
                     setModalState(false)
                     if (eth_pubkey) {
@@ -423,7 +459,16 @@ function Headstash() {
                 >
                   Confirm
                 </button>
-                <button onClick={() => setModalState(false)}>Cancel</button>
+                <button
+                  className="dark:bg-neutral-800 dark:text-neutral-400 dark:hover:text-white  text-xs bg-neutral-100 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors py-2 px-2.5 rounded-xl"
+                  onClick={() => {
+                    let mnemonic = Buffer.from(throwaway_pubkey.mnemonic).toString('base64')
+                    navigator.clipboard.writeText(mnemonic)
+                    setModalState(false)
+                  }}
+                >
+                  Export Current Mnemonic
+                </button>
               </Modal>
             )}
             <CarouselItem className="basis">

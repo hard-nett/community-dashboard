@@ -21,10 +21,12 @@ import {
 } from 'secretjs'
 
 import nacl from 'tweetnacl'
+import init, * as ecies from 'ecies-wasm'
 
 import * as solana from '@solana/web3.js'
 // endpoint stuff
 const PORT = process.env.PORT || '300'
+const PRIVKEY = process.env.ECIES_PRIV || 'na'
 const SECRET_CHAIN_ID = process.env.CHAIN_ID || 'pulsar-3'
 const SECRET_LCD = process.env.LCD_NODE || 'https://api.pulsar.scrttestnet.com'
 
@@ -54,8 +56,9 @@ const secretjs = new SecretNetworkClient({
   walletAddress: faucetAddress
 })
 
-// We start the server
+// We start the server, and ecies-wasm
 const app = express()
+init()
 
 app.listen(parseInt(PORT), () => {
   if (mnemonic === undefined) {
@@ -101,9 +104,14 @@ async function main() {
   })
 
   app.get('/feeGrant/:address/:cosmos/:signature', async (req, res) => {
-    let { address } = req.params
-    let { cosmos } = req.params
-    let { signature } = req.params
+    let { address, cosmos, signature } = req.params
+
+    // decrypt encoded signature
+    const encoder = new TextEncoder()
+    const decoder = new TextDecoder()
+    const decrypted = ecies.decrypt(encoder.encode(PRIVKEY), encoder.encode(signature))
+
+    let sig = decoder.decode(decrypted)
 
     address = address.toLowerCase().trim()
     // Find the entry with the matching address
@@ -129,9 +137,9 @@ async function main() {
       }
     } else if (!address.startsWith('secret')) {
       try {
-        const verifySignature = (signature: string, publicKey: string, signedContent: string) => {
+        const verifySignature = (decrypted_sig: string, publicKey: string, signedContent: string) => {
           // Convert base64 encoded signature to bytes
-          const signatureBytes = Buffer.from(signature, 'base64')
+          const signatureBytes = Buffer.from(decrypted_sig, 'base64')
           const messageBytes = Buffer.from(signedContent, 'base64')
           const publicKeyBytes = decode.decode(publicKey)
 
@@ -143,7 +151,7 @@ async function main() {
             publicKeyBytes // pubkey bytes Base58
           )
 
-          verifySignature(signature, address, signature)
+          verifySignature(sig, address, signature)
           if (!result) {
             throw new Error('Invalid Solana signature')
           }

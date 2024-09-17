@@ -88,12 +88,16 @@ const connectLeap = async (lcd: string, chainID: string) => {
     return { walletAddress, pubkey, secretjs }
   }
 }
-const connectThrowaway = async (lcd: string, chainID: string) => {
+const getLocalStorageMnemonicLOL = async (pubkey: string) => {
   // get throwaway privkey from localstorage
-  const item = localStorage.getItem('throwawayPrivateKey')
-
+  const item = localStorage.getItem(pubkey)
   let mnemonic = atob(item)
   const wallet = new Wallet(mnemonic)
+  return wallet
+}
+
+const connectThrowaway = async (lcd: string, chainID: string, throwaway: string) => {
+  let wallet = await getLocalStorageMnemonicLOL(throwaway)
 
   let walletAddress = wallet.address
   let pubkey = wallet.publicKey
@@ -112,14 +116,15 @@ const connectThrowaway = async (lcd: string, chainID: string) => {
 const connectWallet = async (
   walletAPIType: WalletAPIType = 'keplr',
   lcd: string = SECRET_TESTNET_LCD,
-  chainID: string = SECRET_TESTNET_CHAIN_ID
+  chainID: string = SECRET_TESTNET_CHAIN_ID,
+  throwaway: string = ''
 ) => {
   let walletAddress: string
   let secretNetworkClient: SecretNetworkClient
   if (walletAPIType === 'leap') {
     ;({ walletAddress, secretjs: secretNetworkClient } = await connectLeap(lcd, chainID))
   } else if (walletAPIType === 'throwaway') {
-    ;({ walletAddress, secretjs: secretNetworkClient } = await connectThrowaway(lcd, chainID))
+    ;({ walletAddress, secretjs: secretNetworkClient } = await connectThrowaway(lcd, chainID, throwaway))
   } else {
     ;({ walletAddress, secretjs: secretNetworkClient } = await connectKeplr(lcd, chainID))
   }
@@ -453,6 +458,7 @@ async function getBalancesForTokens(props: IGetBalancesForTokensProps): Promise<
 
 export const WalletService = {
   connectWallet,
+  getLocalStorageMnemonicLOL,
   requestFeeGrantService,
   setWalletViewingKey,
   getWalletViewingKey,

@@ -13,7 +13,7 @@ export default function HeadstashAPITable({ amount, status }: { amount: Headstas
     <Card className="xl:col-span-2">
       <CardHeader className="flex flex-row items-center">
         <div className="grid gap-2">
-          <CardTitle>Eligible to Claim</CardTitle>
+          <CardTitle>Headstash Tokens</CardTitle>
           <CardDescription>All tokens eligible to redeem for this headstash</CardDescription>
         </div>
         <Button asChild size="sm" className="ml-auto gap-1">

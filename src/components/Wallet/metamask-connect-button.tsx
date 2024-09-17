@@ -3,15 +3,18 @@ import { useAccount, useDisconnect } from 'wagmi'
 
 import toast from 'react-hot-toast'
 import { getShortAddress } from 'utils/getShortAddress'
+import { WalletService } from '@/services/wallet.service'
+import { initialThrowawayDetails, ThrowawayWallet } from '@/utils/headstash'
 
 interface MetamaskConnectButtonProps {
-  handleEthPubkey: (eth_pubkey: string) => void
+  handleEthPubkey: (eth_pubkey: string, throwaway: ThrowawayWallet) => void
 }
 
 const ethereum = (window as any).ethereum
 
 const MetamaskConnectButton: React.FC<MetamaskConnectButtonProps> = ({ handleEthPubkey }) => {
   const [eth_pubkey, setEthPubkey] = useState<string>('')
+  const [throwaway, setThrowawayKeys] = useState<ThrowawayWallet>(initialThrowawayDetails)
   const { status, address } = useAccount()
   const { disconnect } = useDisconnect()
 
@@ -34,6 +37,13 @@ const MetamaskConnectButton: React.FC<MetamaskConnectButtonProps> = ({ handleEth
   const walletConnectHandler = async () => {
     try {
       const walletResponse = await connectWallet()
+      // load throwaway wallet
+      let throwaway = await WalletService.getLocalStorageMnemonicLOL(walletResponse.address)
+      let wallet: ThrowawayWallet = {
+        mnemonic: throwaway.mnemonic,
+        pubkey: throwaway.address
+      }
+      setThrowawayKeys(wallet)
       setEthPubkey(walletResponse.address)
     } catch (e) {
       console.log(e)
@@ -44,6 +54,7 @@ const MetamaskConnectButton: React.FC<MetamaskConnectButtonProps> = ({ handleEth
     try {
       await disconnect()
       setEthPubkey('')
+      setThrowawayKeys(initialThrowawayDetails)
     } catch (e) {
       toast.error(`${e}`)
     }
@@ -65,7 +76,7 @@ const MetamaskConnectButton: React.FC<MetamaskConnectButtonProps> = ({ handleEth
 
   useEffect(() => {
     addWalletListener()
-    handleEthPubkey(eth_pubkey)
+    handleEthPubkey(eth_pubkey, throwaway)
   }, [eth_pubkey, handleEthPubkey])
 
   return (

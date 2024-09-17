@@ -10,23 +10,31 @@ type AccountObject = {
   }
 }
 
-function createThrowawayAccount() {
+function createThrowawayAccount(eth: string) {
+  // check if theres existing throwaway wallet with pubkey
+  // get throwaway privkey from localstorage
+  const item = localStorage.getItem(`throwawayPrivateKey-${eth}`)
+
+  if (item) {
+    const wallet = new Wallet(item)
+    return wallet
+  }
   // create disposable wallet
   const wallet = new Wallet()
 
   // base64 encoding
   let mnemonic_hash = btoa(wallet.mnemonic.toString())
   // save privkey to localstorage
-  saveMnemonicToLocalStorage(mnemonic_hash)
+  saveMnemonicToLocalStorage(mnemonic_hash, eth)
 
   return wallet
 }
-const saveMnemonicToLocalStorage = async (privateKey: string) => {
+const saveMnemonicToLocalStorage = async (privateKey: string, eth: string) => {
   try {
     // Check if local storage is available
     if (typeof window !== 'undefined' && window.localStorage) {
       // Save the private key to local storage
-      window.localStorage.setItem('throwawayPrivateKey', privateKey) // todo: save w/ nonce?
+      window.localStorage.setItem(`throwawayPrivateKey-${eth}`, privateKey)
       console.log('Private key saved to local storage')
     } else {
       console.error('Local storage is not available')
