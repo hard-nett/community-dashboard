@@ -7,11 +7,10 @@ import toast from 'react-hot-toast'
 
 // ecies wasm
 import init, * as ecies from 'ecies-wasm'
-init()
 
 // Used to handle encrypted feegrant-requests
-export default function ActionableStatus() {
-  const { feeGrantStatus, requestFeeGrant, isConnected, unEncryptedEthSig } = useSecretNetworkClientStore()
+export default function FeegrantButton() {
+  const { feeGrantStatus, requestFeeGrant, isConnected, unEncryptedOfflineSig } = useSecretNetworkClientStore()
 
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
@@ -22,7 +21,7 @@ export default function ActionableStatus() {
     init()
     const encoder = new TextEncoder()
     // encrypt the request
-    const encrypted = ecies.encrypt(encoder.encode(import.meta.env.ECIES_PUBKEY), encoder.encode(unEncryptedEthSig))
+    const encrypted = ecies.encrypt(encoder.encode(import.meta.env.ECIES_PUBKEY), encoder.encode(unEncryptedOfflineSig))
     let hash = Buffer.from(encrypted).toString('hex')
 
     // console.log("encrypted:", hash.toString())

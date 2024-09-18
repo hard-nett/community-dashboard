@@ -1,6 +1,5 @@
 import { Helmet } from 'react-helmet-async'
-import React, { useEffect, useState } from 'react'
-
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 import { bridgeJsonLdSchema, bridgePageDescription, headstashPageTitle, randomPadding } from 'utils/commons'
@@ -43,21 +42,28 @@ import {
   initialThrowawayDetails
 } from 'utils/headstash'
 import { getShortAddress, getShortTxHash } from 'utils/getShortAddress'
-import ActionableStatus from 'components/FeeGrant/components/ActionableStatus'
 import { createThrowawayAccount } from 'components/Headstash/Account'
 import HeadstashApiTable from '@/components/Headstash/ApiTable'
 import Modal from '@/components/UI/Modal/Modal'
+import FeegrantButton from 'components/FeeGrant/components/ActionableStatus'
+// import init, * as ecies from 'ecies-wasm'
 
 function Headstash() {
   // network config state
   const [secretjs, setSecretjs] = useState<Nullable<SecretNetworkClient>>(null)
   const [apiUrl, setApiUrl] = useState<string>(SECRET_TESTNET_LCD)
-  const [isVerified, setIsVerified] = useState(false)
   const [isloading, setLoading] = useState(false)
-  const { walletAddress, walletAPIType, isConnected, unEncryptedEthSig, setUnencryptedEthSig, feeGrantStatus } =
-    useSecretNetworkClientStore()
+  const {
+    walletAddress,
+    walletAPIType,
+    isConnected,
+    unEncryptedOfflineSig,
+    headyAddr,
+    setHeadyAddr,
+    setUnEncryptedOfflineSig,
+    feeGrantStatus
+  } = useSecretNetworkClientStore()
   // pubkey states (eth, sol)
-  const [walletType, setWalletType] = useState('eth')
   const [eth_pubkey, setEthPubkey] = useState('')
   const [sol_pubkey, setSolPubkey] = useState('')
   const [exporting_mnemonic, setExportingMnemonic] = useState(false)
@@ -66,7 +72,6 @@ function Headstash() {
   const [gen_sig, setSignatureState] = useState(false)
   const [throwaway_pubkey, setThrowawayPubkey] = useState<ThrowawayWallet>(initialThrowawayDetails)
   const [sigDetails, setSigDetails] = useState<SigDetails>(initialSigDetails)
-  const [encryptedEthSig, setEncryptedEthSig] = useState<Uint8Array>()
   // airdrop amount state
   const [amountDetails, setAmountDetails] = useState<HeadstashAllocation>(initialAmountDetails)
   const [amountState, setAmountState] = useState<FetchAmountState>('not_fetched_yet')
@@ -76,51 +81,34 @@ function Headstash() {
 
   const [api, setApi] = useState<CarouselApi>()
 
-  useEffect(() => {
-    const handleWalletDisconnect = () => {
-      setEthPubkey('')
-      setSolPubkey('')
-      setSignatureState(false)
-      handleHsDetails(initialAmountDetails, 'not_fetched_yet')
-      setSigDetails(initialSigDetails)
-    }
-    // Check if window.ethereum is available
-    if (eth_pubkey != '') {
-      // Listen for wallet disconnect events
-      ;(window as any).ethereum.on('disconnect', handleWalletDisconnect)
-    }
-    if (sol_pubkey != '') {
-      // Listen for solana wallet disconnect events
-      ;(window as any).solana.on('disconnect', handleWalletDisconnect)
-    }
-
-    // clean event listener on unmount
-    return () => {
-      if (eth_pubkey != '') {
-        ;(window as any).ethereum.off('disconnect', handleWalletDisconnect)
-      }
-    }
-  }, [eth_pubkey])
-
   // handle eth wallet connect
-  const handleEthPubkey = (eth_pubkey: string, throwaway: ThrowawayWallet) => {
+  const handleEthPubkey = async (eth_pubkey: string) => {
     if (eth_pubkey == '') {
       setSignatureState(false)
       handleHsDetails(initialAmountDetails, 'not_fetched_yet')
       setSigDetails(initialSigDetails)
+      // setHeadyAddr('')
     }
     setEthPubkey(eth_pubkey)
-    setThrowawayPubkey(throwaway)
+    // setHeadyAddr(walletAddress)
   }
+
+  // get solana wallet provider from browser
+  const getSolProvider = () => {
+    if ('solana' in window) {
+      const provider = window.solana as any
+      if (provider.isPhantom) {
+        return provider
+      }
+    }
+    window.open('https://phantom.app/', '_blank')
+  }
+
   // handle solana wallet connect
   const handleSolPubkey = (sol_pubkey: string) => {
     // set pubkey
     setSolPubkey(sol_pubkey)
-  }
-
-  // sets state of throwaway wallet signature verification
-  const handleSigModal = async () => {
-    setModalState(true)
+    setHeadyAddr(walletAddress)
   }
 
   // set headstash details into state. Used when wallets connect and disconnect
@@ -129,16 +117,65 @@ function Headstash() {
     setAmountState(state)
   }
 
-  // fetch headstash data
-  useEffect(() => {
-    const retrieveThrowaway = async () => {
-      let wallet = await WalletService.getLocalStorageMnemonicLOL(`throwawayPrivateKey-${eth_pubkey.slice(10)}`)
-      let throwaway: ThrowawayWallet = {
-        mnemonic: wallet.mnemonic,
-        pubkey: wallet.address
-      }
-      setThrowawayPubkey(throwaway)
+  // triggers the throwaway wallet modal
+  const handleSigModal = async () => {
+    setModalState(true)
+  }
+
+  function getPubkey() {
+    return eth_pubkey !== '' ? eth_pubkey : sol_pubkey
+  }
+
+  const fetchThrowawayKeys = async () => {
+    let wallet = await WalletService.getLocalStorageMnemonicLOL(`throwawayPrivateKey-${getPubkey()}`)
+    let throwaway: ThrowawayWallet = {
+      mnemonic: wallet.mnemonic,
+      pubkey: wallet.address
     }
+    setThrowawayPubkey(throwaway)
+  }
+
+  useEffect(() => {
+    if (isloading) {
+      const handleFetchingThrowawayKeys = async () => {
+        await fetchThrowawayKeys()
+      }
+      handleFetchingThrowawayKeys()
+    }
+  }, [isloading])
+
+  // wallet specific effects
+  useEffect(() => {
+    // reset state when wallet disconnects
+    const handleWalletDisconnect = () => {
+      setEthPubkey('')
+      setSolPubkey('')
+      setSignatureState(false)
+      handleHsDetails(initialAmountDetails, 'not_fetched_yet')
+      setSigDetails(initialSigDetails)
+      setUnEncryptedOfflineSig('')
+    }
+    // Check if window.ethereum is available
+    if (eth_pubkey != '') {
+      // Listen for wallet disconnect events
+      ;(window as any).ethereum.on('disconnect', handleWalletDisconnect)
+    } else if (sol_pubkey != '') {
+      // Listen for solana wallet disconnect events
+      ;(window as any).solana.on('disconnect', handleWalletDisconnect)
+    }
+
+    // clean event listener on unmount
+    return () => {
+      if (eth_pubkey != '') {
+        ;(window as any).ethereum.off('disconnect', handleWalletDisconnect)
+      } else if (sol_pubkey != '') {
+        ;(window as any).solana.off('disconnect', handleWalletDisconnect)
+      }
+    }
+  }, [eth_pubkey, sol_pubkey])
+
+  // headstash specific effects
+  useEffect(() => {
     const fetchHeadstash = async (pubkey: string) => {
       try {
         if (String(pubkey).startsWith('0x1') && !eth_pubkey) {
@@ -171,15 +208,10 @@ function Headstash() {
         handleSigModal().then(() => {})
       })
     }
-
     if (sol_pubkey != '' && amountState == 'not_fetched_yet') {
       fetchHeadstash(sol_pubkey).then(() => {
         handleSigModal().then(() => {})
       })
-    }
-
-    if (exporting_mnemonic) {
-      retrieveThrowaway()
     }
   }, [eth_pubkey, sol_pubkey])
 
@@ -197,13 +229,13 @@ function Headstash() {
         throw new Error('Not eligible for this headstash')
       }
 
-      // define the msg to sign
       if (walletAddress !== undefined) {
         const cosmosAddress = walletAddress.toString()
-        let throwaway = createThrowawayAccount(eth_pubkey)
+        await fetchThrowawayKeys()
         const from = eth_pubkey
 
-        const msg = `0x${Buffer.from(`HREAM ~ ${throwaway.address} ~ ${cosmosAddress}`, 'utf8').toString('hex')}`
+        // define the msg to sign
+        const msg = `0x${Buffer.from(`HREAM ~ ${throwaway_pubkey.pubkey} ~ ${cosmosAddress}`, 'utf8').toString('hex')}`
 
         // trigger metamask
         const sign = await (window as any).ethereum.request({
@@ -218,13 +250,11 @@ function Headstash() {
           address: from,
           timestamp: new Date().toISOString()
         }
-
-        console.log('Signature object:', sig)
+        // let hash = await encrypt_sig(sig.signatureHash)
+        // setEncryptedOfflineSig(hash)
 
         // set values to local-storage
-        setSigDetails(sign)
-        setIsVerified(true)
-        setUnencryptedEthSig(sig.signatureHash)
+        setSigDetails(sig)
       } else {
         toast.error('Error Updating ethSig.')
       }
@@ -233,17 +263,6 @@ function Headstash() {
       let errorMessage = error instanceof Error ? error.message : JSON.stringify(error)
       toast.error(errorMessage)
     }
-  }
-
-  // get solana wallet provider from browser
-  const getSolProvider = () => {
-    if ('solana' in window) {
-      const provider = window.solana as any
-      if (provider.isPhantom) {
-        return provider
-      }
-    }
-    window.open('https://phantom.app/', '_blank')
   }
 
   const handleSolanaSig = async () => {
@@ -257,21 +276,16 @@ function Headstash() {
       }
       handleSolPubkey(provider.publicKey)
       // get throwaway wallet
-      let wallet = await WalletService.getLocalStorageMnemonicLOL(provider.publicKey)
-      let throwaway: ThrowawayWallet = {
-        mnemonic: wallet.mnemonic,
-        pubkey: wallet.address
-      }
-      setThrowawayPubkey(throwaway)
+      fetchThrowawayKeys()
       setModalState(true)
     } catch (error) {
       console.error(error)
     }
   }
 
-  const generateAndSignPayload = async (provider: any) => {
+  const signSol = async (provider: any) => {
     // generate throwaway wallet
-    let throwaway = createThrowawayAccount(sol_pubkey)
+    await fetchThrowawayKeys()
 
     if (amountDetails.headstash.length == 0) {
       toast.error('Not eligible for this headstash')
@@ -280,7 +294,7 @@ function Headstash() {
 
     // form solana msg to sign
     const cosmosAddress = walletAddress.toString()
-    const messageBytes = Buffer.from(`HREAM ~ ${throwaway.address} ~ ${cosmosAddress}`, 'utf8')
+    const messageBytes = Buffer.from(`HREAM ~ ${throwaway_pubkey.pubkey} ~ ${cosmosAddress}`, 'utf8')
 
     // sign the transaction using Phantom wallet (returns bytes)
     const payloadSignature = await provider.signMessage(messageBytes)
@@ -288,15 +302,27 @@ function Headstash() {
     // return expected sig response type
     const sig: SigDetails = {
       message: messageBytes.toString('base64'),
-      signatureHash: payloadSignature.signature.toString('base64'),
+      signatureHash: payloadSignature.signature,
       address: payloadSignature.publicKey,
       timestamp: new Date().toISOString()
     }
-    console.log('Signature object:', sig)
-    setSigDetails(sig)
+
+    // let hash = await encrypt_sig(sig.signatureHash)
+    // setEncryptedOfflineSig(hash)
+
     setSigDetails(sig)
     return sig
   }
+
+  // const encrypt_sig = async (sig: string) => {
+  //   // init ecies
+  //   init();
+  //   const encoder = new TextEncoder()
+  //   // encrypt the request
+  //   const encrypted = ecies.encrypt(encoder.encode(import.meta.env.ECIES_PUBKEY), encoder.encode(sig))
+  //   let hash = Buffer.from(encrypted).toString('hex')
+  //   return hash
+  // }
 
   const handleSolanaDisconnect = async () => {
     // get solana wallet provider from browser
@@ -308,11 +334,13 @@ function Headstash() {
       setAmountDetails(initialAmountDetails)
       setAmountState('not_fetched_yet')
       setSigDetails(initialSigDetails)
+      // setEncryptedOfflineSig('')
     } catch (error) {
       console.error('Error disconnecting from Phantom wallet', error)
     }
   }
 
+  // sign msg to claim headstash with throwaway wallet, gas fees covered.
   const claimHeadstashMsg = async () => {
     try {
       const { secretjs: importedSecretjs } = await WalletService.connectWallet(
@@ -323,8 +351,14 @@ function Headstash() {
       setSecretjs(importedSecretjs)
 
       if (sigDetails.signatureHash != '' && amountState == 'amounts_fetched') {
-        const claim = { eth_pubkey, eth_sig: sigDetails.signatureHash, heady_wallet: walletAddress }
+        if (eth_pubkey != '') {
+        }
+        if (sol_pubkey != '') {
+        }
+        // cw-headstash entry point
+        const claim = { pubkey: getPubkey(), offline_sig: sigDetails.signatureHash, heady_wallet: walletAddress }
 
+        // form msg to broadcast
         const msgExecute = new MsgExecuteContract({
           sender: secretjs.address,
           contract_address: headstashContract,
@@ -333,6 +367,7 @@ function Headstash() {
           sent_funds: []
         })
 
+        // broadcast
         const tx = await secretjs.tx.broadcast([msgExecute], {
           gasLimit: Math.ceil(parseInt('000000') * 2),
           gasPriceInFeeDenom: parseInt('0.05'),
@@ -340,9 +375,12 @@ function Headstash() {
           feeGranter: feegrantAddress
         })
 
-        console.log('Execution Result:', msgExecute)
-        console.log('Execution Result:', tx.transactionHash)
-        toast.success(`View Tx Hash: ${getShortTxHash(tx.transactionHash)}`)
+        // handle error
+        if (tx.code == 0) {
+          toast.success(`View Tx Hash: ${getShortTxHash(tx.transactionHash)}`)
+        } else {
+          toast.error(tx.rawLog)
+        }
       }
     } catch (error) {
       let errorMessage: string
@@ -359,8 +397,6 @@ function Headstash() {
     try {
       // confirm should be sending ibc-bloom
 
-      // generate new eth sig
-
       // get throwaway wallet
       const { secretjs: importedSecretjs } = await WalletService.connectWallet(
         'throwaway', // grabs throwaway mnemonic from localstorage
@@ -369,18 +405,11 @@ function Headstash() {
       )
       setSecretjs(importedSecretjs)
 
-      if (eth_pubkey) {
-        handleEthSig()
-      }
-      if (sol_pubkey) {
-        handleSolanaSig()
-      }
-
       // sign ibc_bloom msgs
       const ibc_bloom = {
-        eth_pubkey,
-        eth_sig: sigDetails.signatureHash,
-        walletAddress,
+        pubkey: eth_pubkey,
+        offlineSig: sigDetails.signatureHash,
+        destinationAddr: headyAddr,
         amountDetails: amountDetails.headstash
       }
       const msgExecute = new MsgExecuteContract({
@@ -453,7 +482,7 @@ function Headstash() {
                       handleEthSig()
                     } else if (sol_pubkey) {
                       const provider = getSolProvider()
-                      generateAndSignPayload(provider)
+                      signSol(provider)
                     }
                   }}
                 >
@@ -522,17 +551,19 @@ function Headstash() {
                 <button
                   className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
                   onClick={claimHeadstashMsg}
-                  style={{ filter: unEncryptedEthSig ? 'none' : 'blur(5px)' }}
-                  disabled={!walletAddress || !isConnected || !eth_pubkey || !unEncryptedEthSig}
+                  style={{ filter: unEncryptedOfflineSig ? 'none' : 'blur(5px)' }}
+                  disabled={!walletAddress || !isConnected || !eth_pubkey || !unEncryptedOfflineSig}
                 >
                   Claim Headstash Airdrop
                 </button>
-                <p className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
-                  <span className="select-none">
-                    <ActionableStatus /> –{' '}
-                  </span>
-                  Bypass your first few transactions fees required on Secret Network.
-                </p>
+                {feeGrantStatus == 'untouched' && (
+                  <p className="text-neutral-400 dark:text-neutral-500 text-sm font-semibold mb-0.5">
+                    <span className="select-none">
+                      <FeegrantButton /> –{' '}
+                    </span>
+                    Bypass your first few transactions fees required on Secret Network.
+                  </p>
+                )}
               </center>
             </CarouselItem>
             {sigDetails && (
@@ -544,8 +575,8 @@ function Headstash() {
                   <button
                     className="text-white block my-6 p-3 w-full text-center font-semibold bg-cyan-600 dark:bg-cyan-600 rounded-lg text-sm hover:bg-cyan-500 dark:hover:bg-cyan-500 focus:bg-cyan-600 dark:focus:bg-cyan-600 transition-colors"
                     onClick={handleIbcBloomMsg}
-                    style={{ filter: unEncryptedEthSig ? 'none' : 'blur(5px)' }}
-                    disabled={!walletAddress || !isConnected || !eth_pubkey || !unEncryptedEthSig}
+                    style={{ filter: unEncryptedOfflineSig ? 'none' : 'blur(5px)' }}
+                    disabled={!walletAddress || !isConnected || !eth_pubkey || !unEncryptedOfflineSig}
                   >
                     IBC Bloom
                   </button>

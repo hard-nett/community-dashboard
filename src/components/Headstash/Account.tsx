@@ -11,23 +11,21 @@ type AccountObject = {
 }
 
 function createThrowawayAccount(eth: string) {
-  // check if theres existing throwaway wallet with pubkey
-  // get throwaway privkey from localstorage
+  // check if throwaway wallet with pubkey exist
   const item = localStorage.getItem(`throwawayPrivateKey-${eth}`)
-
   if (item) {
     const wallet = new Wallet(item)
     return wallet
+  } else {
+    // create new throwaway wallet
+    const wallet = new Wallet()
+
+    // base64 encoding
+    let mnemonic_hash = btoa(wallet.mnemonic.toString())
+    // save privkey to localstorage
+    saveMnemonicToLocalStorage(mnemonic_hash, eth)
+    return wallet
   }
-  // create disposable wallet
-  const wallet = new Wallet()
-
-  // base64 encoding
-  let mnemonic_hash = btoa(wallet.mnemonic.toString())
-  // save privkey to localstorage
-  saveMnemonicToLocalStorage(mnemonic_hash, eth)
-
-  return wallet
 }
 const saveMnemonicToLocalStorage = async (privateKey: string, eth: string) => {
   try {

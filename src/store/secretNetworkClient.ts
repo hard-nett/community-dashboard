@@ -52,13 +52,10 @@ interface SecretNetworkClientState {
   setIsGetWalletModalOpen: (isGetWalletModalOpen: boolean) => void
   isConnectWalletModalOpen: boolean
   setIsConnectWalletModalOpen: (isConnectWalletModalOpen: boolean) => void
-  ethAddress: Nullable<string>
-  unEncryptedEthSig: Nullable<string>
-  encryptedEthSig: Nullable<string>
-  setUnencryptedEthSig: (un: string) => void
-  // eciesPubkey: string,
-  // encryptEthSig: (unEncryptedEthSig: string) => Promise<void>,
-  // setEthAddr: (addr: string) => void,
+  headyAddr: Nullable<string>
+  setHeadyAddr: (addr: string) => void
+  unEncryptedOfflineSig: Nullable<string>
+  setUnEncryptedOfflineSig: (un: string) => void
 }
 
 export const useSecretNetworkClientStore = create<SecretNetworkClientState>()((set, get) => ({
@@ -73,18 +70,10 @@ export const useSecretNetworkClientStore = create<SecretNetworkClientState>()((s
   isConnected: false,
   walletAddress: null,
   walletPubkey: null,
-  ethAddress: null,
-  unEncryptedEthSig: null,
-  encryptedEthSig: null,
-  setEthAddr: async (addr: string) => set({ ethAddress: addr }),
-  setUnencryptedEthSig: async (sig: string) => set({ unEncryptedEthSig: sig }),
-  setEncryptedSig: async (encrypted: string) => set({ encryptedEthSig: encrypted }),
-  // eciesPubkey: import.meta.env.ECIES_PUBKEY,
-  // encryptEthSig: async (sig: string) => {
-  //   const { unEncryptedEthSig, eciesPubkey } = get()
-  //   let encrypted = encrypt(eciesPubkey, Buffer.from(sig))
-  //   set({ unEncryptedEthSig, encryptedEthSig: encrypted })
-  // },
+  headyAddr: null,
+  unEncryptedOfflineSig: null,
+  setHeadyAddr: async (addr: string) => set({ headyAddr: addr }),
+  setUnEncryptedOfflineSig: async (sig: string) => set({ unEncryptedOfflineSig: sig }),
   setWalletAddress: (walletAddress: string) => set({ walletAddress }),
   setKey: (walletPubkey: Key) => set({ walletPubkey }),
   secretNetworkClient: null,
@@ -114,8 +103,7 @@ export const useSecretNetworkClientStore = create<SecretNetworkClientState>()((s
       isConnected: false,
       scrtBalance: null,
       sScrtBalance: null,
-      unEncryptedEthSig: null,
-      encryptedEthSig: null
+      unEncryptedOfflineSig: null
     })
     const { stopBalanceRefresh } = get()
     stopBalanceRefresh()
@@ -123,8 +111,8 @@ export const useSecretNetworkClientStore = create<SecretNetworkClientState>()((s
   },
   feeGrantStatus: 'untouched',
   requestFeeGrant: async () => {
-    const { feeGrantStatus, walletAddress, unEncryptedEthSig } = get()
-    const result = await WalletService.requestFeeGrantService(feeGrantStatus, walletAddress, unEncryptedEthSig)
+    const { feeGrantStatus, walletAddress, unEncryptedOfflineSig } = get()
+    const result = await WalletService.requestFeeGrantService(feeGrantStatus, walletAddress, unEncryptedOfflineSig)
     set({ feeGrantStatus: result })
   },
   scrtBalance: null,

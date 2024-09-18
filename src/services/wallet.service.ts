@@ -90,10 +90,15 @@ const connectLeap = async (lcd: string, chainID: string) => {
 }
 const getLocalStorageMnemonicLOL = async (pubkey: string) => {
   // get throwaway privkey from localstorage
-  const item = localStorage.getItem(pubkey)
-  let mnemonic = atob(item)
-  const wallet = new Wallet(mnemonic)
-  return wallet
+  const item = localStorage.getItem(pubkey.substring(0, 10))
+  if (!item) {
+    let mnemonic = atob(item)
+    const wallet = new Wallet(mnemonic)
+    return wallet
+  } else {
+    const wallet = new Wallet()
+    return wallet
+  }
 }
 
 const connectThrowaway = async (lcd: string, chainID: string, throwaway: string) => {

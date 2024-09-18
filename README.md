@@ -2,12 +2,16 @@
 
 # TODO
 
-- ui: improve design
-- throwaway-wallet: store privkey w/ timestamped/session index for retrival & pruning,prune throwaway wallets after 24 hours
+- ui: ibc-bloom needs to have destination wallet selected.
+- throwaway-wallet: store privkey w/ timestamped/session
+- prune throwaway wallets after 7 days have passed
 - ui: completely remove any development logs to mimimize data leak
 - throwaway-wallet: store offline solution such as jackal
 - throwaway-wallet: fix button to reveal mnemonic from local storage
 - dev-ops: akash delployment scripts
+- ui: remove unencrypted signature from being saved to state, replace for encrypted and decrypt when needed
+- headstash: handle multi-chain destination for each snip120u
+- ui: improve design
 
 ---
 
@@ -48,13 +52,6 @@ Feegrants can be requested only be eligible claimers, and requires providing the
 Now, thats left to do is claim a headstash by broadcasting the msg to claim, with the throwaway wallet, while having this tx covered if the feegrant was needed/registered.
 
 ### Privately IBC Transfer tokens back to Terp Network
-
-## Future Features
-
-- display list of available headstashes
-- create new headstash
-- account profile
-- verification tooling
 
 ## Setup
 
