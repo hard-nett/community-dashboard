@@ -2,19 +2,20 @@
 
 # TODO
 
-- ui: ibc-bloom needs to have destination wallet selected.
-- throwaway-wallet: store privkey w/ timestamped/session
-- prune throwaway wallets after 7 days have passed
-- ui: completely remove any development logs to mimimize data leak
+- ui: preview ibc-bloom msg before broadcasting
+- ui: clean up ibc-bloom & headstash claim msgs error handling
 - throwaway-wallet: store offline solution such as jackal
-- throwaway-wallet: fix button to reveal mnemonic from local storage
 - dev-ops: akash delployment scripts
-- ui: remove unencrypted signature from being saved to state, replace for encrypted and decrypt when needed
-- headstash: handle multi-chain destination for each snip120u
 - ui: improve design
+- ui: completely remove any development logs to mimimize data leak
+- ui: remove unencrypted signature from being saved to state, replace for encrypted and decrypt when needed
 
 ---
 
+- ~~throwaway-wallet: fix button to reveal mnemonic from local storage~~
+- ~~throwaway-wallet: store privkey w/ timestamped/session~~
+- ~~throwaway-wallet: prune throwaway wallets after 14 days have passed~~
+- ~~ui: ibc-bloom needs to have destination wallet selected.~~
 - ~~faucet: encrypt faucet tx with ecies [wasm-bindgen](https://github.com/ecies/rs-wasm) package~~
 - ~~ibc-bloom: load connected wallet as destination, use throwaway to broadcast with feegrant~~
 - ~~ibc-bloom: implement ibc-bloom logic~~

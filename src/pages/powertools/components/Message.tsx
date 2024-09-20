@@ -74,7 +74,7 @@ function Message(props: Props) {
     if (messageType) {
       try {
         props.updateContent(JSON.stringify(JSON.parse(props.content), null, 2))
-      } catch (error) {
+      } catch (error: any) {
         setError(error)
       }
     }

@@ -89,14 +89,33 @@ const connectLeap = async (lcd: string, chainID: string) => {
   }
 }
 const getLocalStorageMnemonicLOL = async (pubkey: string) => {
-  // get throwaway privkey from localstorage
-  const item = localStorage.getItem(pubkey.substring(0, 10))
-  if (!item) {
+  // get all localstorage values with prefix 'hstk'  let lsKey = `hstk-${monthAndDate}-${getPubkey()}`;
+  let keys = Object.keys(localStorage)
+  let hstkKeys = keys.filter((key) => key.startsWith('hstk-'))
+
+  let monthAndDate = new Date().toLocaleString('default', { month: 'numeric', day: 'numeric' })
+  let lsKey = `hstk-${monthAndDate}-${pubkey}`
+
+  // For each retrieved value, remove value from LS if current time is less than 2 weeks more than monthAndDate
+  hstkKeys.forEach((key) => {
+    let dateStr = key.split('-')[1]
+    let dateParts = dateStr.split('/')
+    let date = new Date(`${dateParts[1]}/${dateParts[0]}/${new Date().getFullYear()}`)
+    let twoWeeksLater = new Date(date.getTime() + 14 * 24 * 60 * 60 * 1000)
+    if (new Date() > twoWeeksLater) {
+      localStorage.removeItem(key)
+    }
+  })
+
+  const item = localStorage.getItem(lsKey)
+  if (item) {
     let mnemonic = atob(item)
     const wallet = new Wallet(mnemonic)
     return wallet
   } else {
     const wallet = new Wallet()
+    let mnemonic = btoa(wallet.mnemonic)
+    localStorage.setItem(lsKey, mnemonic)
     return wallet
   }
 }

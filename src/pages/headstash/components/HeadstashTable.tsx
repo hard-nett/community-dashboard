@@ -6,7 +6,7 @@ import { Badge } from 'components/UI/badge'
 import { Button } from 'components/UI/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'components/UI/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from 'components/UI/table'
-import { HeadstashAllocation, initialSigDetails, SigDetails } from '@/utils/headstash'
+import { HeadstashAllocation, initialSigDetails, SigDetails } from '@/types/Headstash'
 
 export default function HeadstashAPITable({ amount, status }: { amount: HeadstashAllocation; status: SigDetails }) {
   return (
@@ -44,7 +44,7 @@ export default function HeadstashAPITable({ amount, status }: { amount: Headstas
                                     </div> */}
                   </TableCell>
                   {/* <TableCell className="hidden xl:table-column">{item[1]}</TableCell> */}
-                  <TableCell className="xl:table-column">
+                  <TableCell className="">
                     {' '}
                     {status && status !== initialSigDetails ? (
                       <span style={{ color: 'green' }}>✓</span>
@@ -52,7 +52,7 @@ export default function HeadstashAPITable({ amount, status }: { amount: Headstas
                       <span style={{ color: 'red' }}>x</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">{item.amount}</TableCell>
+                  <TableCell className="text-right">{(item.amount / 1000000).toFixed(6)}</TableCell>
                 </TableRow>
               ))}
           </TableBody>

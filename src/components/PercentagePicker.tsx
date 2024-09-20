@@ -38,6 +38,14 @@ export default function PercentagePicker(props: Props) {
       >
         100%
       </button>
+      {/* <button
+        type="button"
+        onClick={() => props.setAmountByPercentage(100)}
+        className="bg-gray-300 dark:bg-neutral-800 py-1.5 px-2.5 rounded-r-lg enabled:hover:bg-gray-400 enabled:dark:hover:bg-neutral-600 transition"
+        disabled={props.disabled}
+      >
+        Random %
+      </button> */}
     </div>
   )
 }

@@ -9,6 +9,14 @@ import BigNumber from 'bignumber.js'
 import { WalletService } from 'services/wallet.service'
 import { IbcService } from 'services/ibc.service'
 import { Key } from '@keplr-wallet/types'
+import {
+  HeadstashAllocation,
+  HeadstashItem,
+  initialAmountDetails,
+  initialThrowawayDetails,
+  ThrowawayWallet
+} from '@/types/Headstash'
+import { FetchAmountState } from '@/types/Headstash'
 
 export interface TokenBalances {
   balance: Nullable<BigNumber>
@@ -16,7 +24,6 @@ export interface TokenBalances {
 }
 
 export type GetBalanceError = 'viewingKeyError' | 'GenericFetchError'
-
 // todo: add headstash & encryption details
 interface SecretNetworkClientState {
   isInitialized: boolean
@@ -52,10 +59,22 @@ interface SecretNetworkClientState {
   setIsGetWalletModalOpen: (isGetWalletModalOpen: boolean) => void
   isConnectWalletModalOpen: boolean
   setIsConnectWalletModalOpen: (isConnectWalletModalOpen: boolean) => void
-  headyAddr: Nullable<string>
-  setHeadyAddr: (addr: string) => void
+  setAmountDetails: (amountDetails: HeadstashAllocation) => void
+  setHeadstashItems: (headstashItems: HeadstashItem[]) => void
+  headstashItems: Nullable<HeadstashItem[]>
+  amountDetails: Nullable<HeadstashAllocation>
+  bloomAddr: Nullable<string>
+  setBloomerAddr: (addr: string) => void
   unEncryptedOfflineSig: Nullable<string>
   setUnEncryptedOfflineSig: (un: string) => void
+  setEthPubkey: (addr: string) => void
+  ethPubkey: string
+  setSolPubkey: (addr: string) => void
+  solPubkey: string
+  setThrowawayWallet: (throwaway: ThrowawayWallet) => void
+  throwawayWallet: ThrowawayWallet
+  setFetchAmountState: (state: FetchAmountState) => void
+  fetchAmountState: FetchAmountState
 }
 
 export const useSecretNetworkClientStore = create<SecretNetworkClientState>()((set, get) => ({
@@ -70,14 +89,27 @@ export const useSecretNetworkClientStore = create<SecretNetworkClientState>()((s
   isConnected: false,
   walletAddress: null,
   walletPubkey: null,
-  headyAddr: null,
+  bloomAddr: null,
+  ethPubkey: null,
+  solPubkey: null,
+  amountDetails: initialAmountDetails,
   unEncryptedOfflineSig: null,
-  setHeadyAddr: async (addr: string) => set({ headyAddr: addr }),
+  throwawayWallet: initialThrowawayDetails,
+  fetchAmountState: 'not_fetched_yet',
+  setFetchAmountState: async (state: FetchAmountState) => set({ fetchAmountState: state }),
+  setThrowawayWallet: async (throwaway: ThrowawayWallet) => set({ throwawayWallet: throwaway }),
+  setSolPubkey: async (addr: string) => set({ solPubkey: addr }),
+  setEthPubkey: async (addr: string) => set({ ethPubkey: addr }),
+  setBloomerAddr: async (addr: string) => set({ bloomAddr: addr }),
+  setAmountDetails: async (amount: HeadstashAllocation) => set({ amountDetails: amount }),
   setUnEncryptedOfflineSig: async (sig: string) => set({ unEncryptedOfflineSig: sig }),
   setWalletAddress: (walletAddress: string) => set({ walletAddress }),
   setKey: (walletPubkey: Key) => set({ walletPubkey }),
   secretNetworkClient: null,
+  headstashItems: [],
+  setHeadstashItems: (secretNetworkClient: any) => set({ secretNetworkClient: secretNetworkClient }),
   setSecretNetworkClient: (secretNetworkClient: any) => set({ secretNetworkClient: secretNetworkClient }),
+
   walletAPIType: null,
   setWalletAPIType: (walletAPIType: WalletAPIType) => set({ walletAPIType }),
   connectWallet: async (walletAPIType?: WalletAPIType) => {
