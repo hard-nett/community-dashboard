@@ -49,6 +49,7 @@ export default function BloomForm() {
     validateOnChange: true,
     onSubmit: async (values) => {
       try {
+        console.log(values)
         HeadstashService.performIbcBloom({
           ibcMode: values.ibcMode,
           chain: values.chain,

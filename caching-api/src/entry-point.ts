@@ -5,27 +5,15 @@ import https from 'https'
 import fs from 'fs'
 import decode from 'bs58'
 import toobusy from 'toobusy-js'
-import secp256k1 from 'secp256k1'
 import { verifyEncryptedEthSig } from './utils/blockchain/verify.js'
-import {
-  Wallet,
-  SecretNetworkClient,
-  EncryptionUtilsImpl,
-  MsgExecuteContract,
-  fromUtf8,
-  MsgExecuteContractResponse,
-  validateAddress,
-  BroadcastMode,
-  MsgExec,
-  MsgGrantAllowance
-} from 'secretjs'
+import { Wallet, SecretNetworkClient, validateAddress, BroadcastMode, MsgExec, MsgGrantAllowance } from 'secretjs'
 
 import nacl from 'tweetnacl'
 import init, * as ecies from 'ecies-wasm'
 
 import * as solana from '@solana/web3.js'
 // endpoint stuff
-const PORT = process.env.PORT || '300'
+const PORT = process.env.PORT || '3000'
 const PRIVKEY = process.env.ECIES_PRIV || 'na'
 const SECRET_CHAIN_ID = process.env.CHAIN_ID || 'pulsar-3'
 const SECRET_LCD = process.env.LCD_NODE || 'https://api.pulsar.scrttestnet.com'
@@ -60,6 +48,7 @@ const secretjs = new SecretNetworkClient({
 const app = express()
 init()
 
+// Begin the API service
 app.listen(parseInt(PORT), () => {
   if (mnemonic === undefined) {
     throw Error('no mnemonic defined, aborting')
@@ -73,6 +62,7 @@ app.use(function (_req, res, next) {
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
   next()
 })
+
 // handle overload of API
 app.use(function (_req, res, next) {
   if (toobusy()) {
@@ -87,14 +77,12 @@ async function main() {
   const rawAmountData = fs.readFileSync(`./${process.env.AMOUNT_JSON_PATH}`, 'utf8')
   const amountData = JSON.parse(rawAmountData.toString())
 
-  // entry point
+  // ENTRY: retrives data for a wallet.
   app.get('/getHeadstash/:address', (req, res) => {
     let { address } = req.params
-
-    // Convert both the requested address and data addresses to lowercase
     address = address.toLowerCase().trim()
 
-    // Find the entry with the matching address (converted to lowercase and trimmed)
+    // Find the entry with the matching address
     const entry = amountData.find((item: { address: string }) => item.address.toLowerCase().trim() === address)
 
     if (!entry) {
@@ -103,15 +91,9 @@ async function main() {
     res.json({ headstash: entry.headstash })
   })
 
+  // ENTRY: request a feegrant.
   app.get('/feeGrant/:address/:cosmos/:signature', async (req, res) => {
     let { address, cosmos, signature } = req.params
-
-    // decrypt encoded signature
-    const encoder = new TextEncoder()
-    const decoder = new TextDecoder()
-    const decrypted = ecies.decrypt(encoder.encode(PRIVKEY), encoder.encode(signature))
-
-    let sig = decoder.decode(decrypted)
 
     address = address.toLowerCase().trim()
     // Find the entry with the matching address
@@ -129,9 +111,15 @@ async function main() {
       return res.status(400).json({ error: 'Address is invalid' })
     }
 
+    // decrypt encoded signature
+    const e = new TextEncoder()
+    const decrypted = ecies.decrypt(e.encode(PRIVKEY), e.encode(signature))
+    const d = new TextDecoder()
+    let sig = d.decode(decrypted)
+
     if (address.startsWith('0x1')) {
       // verify signature for eth pubkey
-      let isCorrectSig = verifyEncryptedEthSig(address, cosmos, signature)
+      let isCorrectSig = verifyEncryptedEthSig(address, cosmos, sig)
       if (isCorrectSig.toLowerCase() !== address.toLowerCase()) {
         return res.status(404).json({ error: 'Unexpected Error' })
       }
@@ -141,21 +129,18 @@ async function main() {
           // Convert base64 encoded signature to bytes
           const signatureBytes = Buffer.from(decrypted_sig, 'base64')
           const messageBytes = Buffer.from(signedContent, 'base64')
-          const publicKeyBytes = decode.decode(publicKey)
-
           const pubKey = new solana.PublicKey(publicKey)
 
           const result = nacl.sign.detached.verify(
             messageBytes, // bytes of msg signed
             signatureBytes, // signature bytes
-            publicKeyBytes // pubkey bytes Base58
+            Buffer.from(pubKey.toBase58()) // pubkey bytes Base58
           )
-
-          verifySignature(sig, address, signature)
           if (!result) {
             throw new Error('Invalid Solana signature')
           }
         }
+        verifySignature(sig, address, signature)
       } catch (error) {
         return res.status(401).json({ error: 'Invalid Solana signature' })
       }
@@ -221,31 +206,30 @@ async function main() {
 }
 main()
 
-// broadcast the feegrant msg
+// broadcast the feegrant msg, on behalf of another account via x/authz
 let broadcastFeeGrant = async (secretjs: SecretNetworkClient, cosmos_addr: string) => {
-  const msgGrant = new MsgGrantAllowance({
-    granter: wallet.address,
+  const msgExec = new MsgExec({
     grantee: cosmos_addr,
-    allowance: {
-      allowance: { spend_limit: [{ denom: faucetDenom, amount: faucetAmount }] },
-      allowed_messages: ['/secret.compute.v1beta1.MsgExecuteContract']
-    }
+    msgs: [
+      new MsgGrantAllowance({
+        granter: wallet.address,
+        grantee: cosmos_addr,
+        allowance: {
+          allowance: { spend_limit: [{ denom: faucetDenom, amount: faucetAmount }] },
+          allowed_messages: ['/secret.compute.v1beta1.MsgExecuteContract']
+        }
+      })
+    ]
   })
 
-  //define the authz msg
-  const msgExec = new MsgExec({ grantee: cosmos_addr, msgs: [msgGrant] })
-  const tx = await secretjs.tx.broadcast(
-    [msgExec],
-
-    {
-      memo: memo,
-      broadcastCheckIntervalMs: 100,
-      feeDenom: gasDenom,
-      gasPriceInFeeDenom: Number(gasFee),
-      gasLimit: Number(gasLimit),
-      broadcastMode: BroadcastMode.Block
-    }
-  )
+  const tx = await secretjs.tx.broadcast([msgExec], {
+    memo: memo,
+    broadcastCheckIntervalMs: 100,
+    feeDenom: gasDenom,
+    gasPriceInFeeDenom: Number(gasFee),
+    gasLimit: Number(gasLimit),
+    broadcastMode: BroadcastMode.Block
+  })
 
   if (tx) {
     if (tx.code != 0) {

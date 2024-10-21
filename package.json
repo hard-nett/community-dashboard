@@ -1,8 +1,7 @@
 {
   "name": "private-headstash-ui",
   "workspaces": [
-    "indexer",
-    "ui"
+    "headstash-api"
   ],
   "description": "An entry point for claiming private airdrops",
   "version": "1.0.0",

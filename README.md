@@ -28,7 +28,13 @@
 
 # Headstash Dashboard
 
-Headstash Dashboard is an entry point for new users into the Cosmos Ecosystem. Features include a Dashboard UI to claim a headstash distribution they are eligible for, IBC Transfer to and from Secret, a Wrap/Unwrap interface, a list of all active Secret dApps, a link collection to useful secret tools and more.
+Headstash Dashboard is an entry point for new users into the Cosmos Ecosystem.
+Forked from the Secret Network dashboard, any user can deploy and configure a headstash distribution for other to claims, in a way that obfuscates wallet address that claim from the public eye.
+
+## Production Requirements
+
+- **Headstash API:** Serves headstash distribution details, can also broadcast msgs to feegrant for users.
+- **Ecies Pubkey:** the verification signature made by users is immediately encrypted using ecies-js. if supported, feegrant request require an feegrantee to provide the signature verifying ownership, so this request to API is also encrypted.
 
 ## Headstash LifeCycle
 

@@ -55,16 +55,6 @@ function GetSCRT() {
     setLoading(true)
   }, [showKado, showTransak])
 
-  if (import.meta.env.TRANSAK_API_KEY) {
-    transakQueryStrings.apiKey = import.meta.env.TRANSAK_API_KEY
-    transakQueryStrings.environment = 'PRODUCTION'
-  }
-  transakQueryStrings.cryptoCurrencyList = 'SCRT'
-  transakQueryStrings.walletAddress = secretNetworkClient?.address
-  transakQueryStrings.disableWalletAddressForm = false
-  transakQueryStrings.themeColor = '000000'
-  transakQueryStrings.defaultCryptoCurrency = 'SCRT'
-
   interface Option {
     value: SelectValue
     label: String

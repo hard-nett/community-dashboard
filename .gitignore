@@ -1,6 +1,8 @@
 # General
 build
 .vscode/launch.json
+package-lock.json
+
 
 # Dependency directories
 node_modules/

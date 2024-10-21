@@ -88,25 +88,41 @@ const connectLeap = async (lcd: string, chainID: string) => {
     return { walletAddress, pubkey, secretjs }
   }
 }
-const getLocalStorageMnemonicLOL = async (pubkey: string) => {
-  // get all localstorage values with prefix 'hstk'  let lsKey = `hstk-${monthAndDate}-${getPubkey()}`;
+// For each retrieved value, remove value from LS if current time is less than 2 weeks more than monthAndDate
+// hstkKeys.forEach((key) => {
+//   let dateStr = key.split('-')[1]
+//   let dateParts = dateStr.split('/')
+//   let date = new Date(`${dateParts[1]}/${dateParts[0]}/${new Date().getFullYear()}`)
+//   let twoWeeksLater = new Date(date.getTime() + 14 * 24 * 60 * 60 * 1000)
+//   if (new Date() > twoWeeksLater) {
+//     localStorage.removeItem(key)
+//   }
+// })
+
+/// Retrieve all keys for connected wallet
+const getAllThrowawayByAddr = async (lsKey: string) => {
   let keys = Object.keys(localStorage)
-  let hstkKeys = keys.filter((key) => key.startsWith('hstk-'))
+  let hstkKeys = keys.filter((key) => key.startsWith(lsKey))
+  return hstkKeys
+}
 
-  let monthAndDate = new Date().toLocaleString('default', { month: 'numeric', day: 'numeric' })
-  let lsKey = `hstk-${monthAndDate}-${pubkey}`
+const getMapOfThrowawayWallets = async (lsKey: string) => {
+  let hstkKeys = await getAllThrowawayByAddr(lsKey)
+  let wallets: { [key: string]: Wallet } = {}
 
-  // For each retrieved value, remove value from LS if current time is less than 2 weeks more than monthAndDate
-  hstkKeys.forEach((key) => {
-    let dateStr = key.split('-')[1]
-    let dateParts = dateStr.split('/')
-    let date = new Date(`${dateParts[1]}/${dateParts[0]}/${new Date().getFullYear()}`)
-    let twoWeeksLater = new Date(date.getTime() + 14 * 24 * 60 * 60 * 1000)
-    if (new Date() > twoWeeksLater) {
-      localStorage.removeItem(key)
+  if (hstkKeys.length != 0) {
+    for (let key of hstkKeys) {
+      let wallet = await getLocalStorageMnemonicLOL(key)
+      wallets[key] = wallet
     }
-  })
+  } else {
+    getLocalStorageMnemonicLOL(lsKey)
+  }
 
+  return wallets
+}
+
+const getLocalStorageMnemonicLOL = async (lsKey: string) => {
   const item = localStorage.getItem(lsKey)
   if (item) {
     let mnemonic = atob(item)
@@ -120,18 +136,19 @@ const getLocalStorageMnemonicLOL = async (pubkey: string) => {
   }
 }
 
-const connectThrowaway = async (lcd: string, chainID: string, throwaway: string) => {
-  let wallet = await getLocalStorageMnemonicLOL(throwaway)
+const connectThrowaway = async (lcd: string, chainID: string, lsKey: string) => {
+  let wallet = await getLocalStorageMnemonicLOL(lsKey)
 
   let walletAddress = wallet.address
   let pubkey = wallet.publicKey
 
+  console.log('connectThrowaway', wallet.getAccounts())
+
   const secretjs: SecretNetworkClient = new SecretNetworkClient({
     url: lcd,
     chainId: chainID,
-    wallet,
-    walletAddress,
-    encryptionUtils: window.leap.getEnigmaUtils(chainID)
+    wallet: wallet,
+    walletAddress
   })
 
   return { walletAddress, pubkey, secretjs }
@@ -141,7 +158,7 @@ const connectWallet = async (
   walletAPIType: WalletAPIType = 'keplr',
   lcd: string = SECRET_TESTNET_LCD,
   chainID: string = SECRET_TESTNET_CHAIN_ID,
-  throwaway: string = ''
+  throwaway: string = 'tlsk-'
 ) => {
   let walletAddress: string
   let secretNetworkClient: SecretNetworkClient
@@ -481,6 +498,7 @@ async function getBalancesForTokens(props: IGetBalancesForTokensProps): Promise<
 }
 
 export const WalletService = {
+  getMapOfThrowawayWallets,
   connectWallet,
   getLocalStorageMnemonicLOL,
   requestFeeGrantService,

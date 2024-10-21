@@ -6,8 +6,9 @@
   "type": "module",
   "scripts": {
     "base": "node dist/entry-point.js",
+    "build": "tsc",
     "dev": "nodemon --watch dist -e js,ejs --exec npm run base",
-    "lint": "eslint . --ext .js",
+    "lint": "eslint. --ext.js",
     "tsc": "tsc"
   },
   "author": "",
